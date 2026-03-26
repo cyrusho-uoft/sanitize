@@ -33,34 +33,9 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 });
 
-function readClipboard(): string {
-  const textarea = document.createElement('textarea');
-  textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  document.execCommand('paste');
-  const text = textarea.value;
-  document.body.removeChild(textarea);
-  return text;
-}
-
-function writeClipboard(text: string) {
-  const textarea = document.createElement('textarea');
-  textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
-  textarea.style.opacity = '0';
-  textarea.value = text;
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-}
-
-function handleClipboardSanitize() {
+async function handleClipboardSanitize() {
   try {
-    const text = readClipboard();
+    const text = await navigator.clipboard.readText();
     if (!text || text.trim().length === 0) return;
 
     const detections = scanL1(text);
@@ -74,7 +49,7 @@ function handleClipboardSanitize() {
     }
 
     const sanitized = tokenize(text, detections);
-    writeClipboard(sanitized);
+    await navigator.clipboard.writeText(sanitized);
 
     chrome.runtime.sendMessage({
       type: 'show-notification',

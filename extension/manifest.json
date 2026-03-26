@@ -5,13 +5,11 @@
   "description": "Detect and remove sensitive information before pasting into AI tools. Built for the University of Toronto community.",
   "permissions": [
     "storage",
+    "clipboardRead",
     "clipboardWrite",
     "notifications",
     "scripting",
     "activeTab"
-  ],
-  "optional_permissions": [
-    "clipboardRead"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",
