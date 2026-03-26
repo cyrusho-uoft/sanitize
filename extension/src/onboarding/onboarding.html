@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="onboarding.css">
+  <title>Welcome — U of T Prompt Sanitizer</title>
+</head>
+<body>
+  <div class="onboarding">
+    <!-- Step 1: What this does -->
+    <div class="step active" data-step="1">
+      <div class="step-icon">&#x1f6e1;</div>
+      <h1 class="step-title">Protect your data before sharing with AI</h1>
+      <p class="step-body">
+        Prompt Sanitizer automatically detects sensitive information — SINs, student numbers,
+        emails, health cards, and more — before you paste text into ChatGPT, Claude, or Gemini.
+      </p>
+      <p class="step-detail">
+        Built by and for the University of Toronto community. Everything runs locally in your
+        browser — no data ever leaves your device.
+      </p>
+    </div>
+
+    <!-- Step 2: How it works -->
+    <div class="step" data-step="2">
+      <h2 class="step-title">How it works</h2>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-number">1</div>
+          <div>
+            <strong>Paste your text</strong>
+            <p>Copy text you want to send to an AI tool and open the extension popup.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-number">2</div>
+          <div>
+            <strong>Review detections</strong>
+            <p>Sensitive items are highlighted with explanations of why they matter.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-number">3</div>
+          <div>
+            <strong>Sanitize &amp; paste</strong>
+            <p>One click replaces PII with safe placeholders. The AI still understands your request.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Choose your mode -->
+    <div class="step" data-step="3">
+      <h2 class="step-title">Choose your protection mode</h2>
+      <div class="mode-options">
+        <label class="mode-option selected" data-mode="A">
+          <input type="radio" name="mode" value="A" checked>
+          <div class="mode-content">
+            <strong>Smart Paste Protection</strong>
+            <span class="mode-badge">Recommended</span>
+            <p>Automatically scans when you paste on AI sites. Shows a notification with what was caught.</p>
+          </div>
+        </label>
+        <label class="mode-option" data-mode="B">
+          <input type="radio" name="mode" value="B">
+          <div class="mode-content">
+            <strong>Always Protected</strong>
+            <p>Scans every copy action on every site. Most protective, but you'll see more notifications.</p>
+          </div>
+        </label>
+        <label class="mode-option" data-mode="C">
+          <input type="radio" name="mode" value="C">
+          <div class="mode-content">
+            <strong>Manual</strong>
+            <p>Open the popup to scan, or press Ctrl+Shift+S. You control when it runs.</p>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav">
+      <div class="dots">
+        <span class="dot active" data-step="1"></span>
+        <span class="dot" data-step="2"></span>
+        <span class="dot" data-step="3"></span>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" id="btn-back" hidden>Back</button>
+        <button class="btn btn-primary" id="btn-next">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="onboarding.js"></script>
+</body>
+</html>

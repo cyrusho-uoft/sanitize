@@ -56,7 +56,7 @@ chrome.action.onClicked.addListener(() => {
   chrome.action.setBadgeText({ text: '' });
 });
 
-// Initialize default settings on install
+// Open onboarding on first install
 chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === 'install') {
     chrome.storage.local.set({
@@ -64,5 +64,6 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
       deepScanEnabled: false,
       onboardingComplete: false,
     });
+    chrome.tabs.create({ url: chrome.runtime.getURL('onboarding/onboarding.html') });
   }
 });

@@ -15,6 +15,7 @@ const entries = [
   { in: 'src/popup/popup.ts', out: 'dist/popup/popup.js', format: 'iife' },
   { in: 'src/background/service-worker.ts', out: 'dist/background/service-worker.js', format: 'esm' },
   { in: 'src/content/content-script.ts', out: 'dist/content/content-script.js', format: 'iife' },
+  { in: 'src/onboarding/onboarding.ts', out: 'dist/onboarding/onboarding.js', format: 'iife' },
 ];
 
 // Copy static files to dist
@@ -23,6 +24,8 @@ function copyStatic() {
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/popup/popup.css', 'dist/popup/popup.css'],
     ['src/content/toast.css', 'dist/content/toast.css'],
+    ['src/onboarding/onboarding.html', 'dist/onboarding/onboarding.html'],
+    ['src/onboarding/onboarding.css', 'dist/onboarding/onboarding.css'],
     ['manifest.json', 'dist/manifest.json'],
   ];
 
