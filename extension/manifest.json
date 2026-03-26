@@ -6,7 +6,9 @@
   "permissions": [
     "storage",
     "clipboardWrite",
-    "notifications"
+    "notifications",
+    "scripting",
+    "activeTab"
   ],
   "optional_permissions": [
     "clipboardRead"

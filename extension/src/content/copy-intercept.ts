@@ -6,6 +6,7 @@
 
 import { scanL1 } from '../scanner';
 import { tokenize } from '../tokenizer';
+import explanations from '../knowledge/explanations.json';
 
 async function isModeBEnabled(): Promise<boolean> {
   try {
@@ -13,6 +14,41 @@ async function isModeBEnabled(): Promise<boolean> {
     return result.mode === 'B';
   } catch {
     return false;
+  }
+}
+
+// Handle Ctrl+Shift+S (Mode C) — service worker delegates clipboard work here
+chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+  if (message.type === 'sanitize-clipboard-request') {
+    handleClipboardSanitize();
+  }
+});
+
+async function handleClipboardSanitize() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text || text.trim().length === 0) return;
+
+    const detections = scanL1(text);
+    if (detections.length === 0) {
+      chrome.runtime.sendMessage({
+        type: 'show-notification',
+        title: 'Prompt Sanitizer',
+        message: 'No sensitive information found in clipboard.',
+      });
+      return;
+    }
+
+    const sanitized = tokenize(text, detections);
+    await navigator.clipboard.writeText(sanitized);
+
+    chrome.runtime.sendMessage({
+      type: 'show-notification',
+      title: 'Prompt Sanitizer',
+      message: `${detections.length} item${detections.length > 1 ? 's' : ''} sanitized in clipboard.`,
+    });
+  } catch (err) {
+    console.error('Clipboard sanitize failed:', err);
   }
 }
 

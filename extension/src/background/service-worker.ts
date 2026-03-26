@@ -7,46 +7,45 @@ import { scanL1 } from '../scanner';
 import { tokenize } from '../tokenizer';
 
 // Handle keyboard shortcut (Ctrl+Shift+S) for Mode C
+// Clipboard API isn't available in service workers, so we delegate to the active tab
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== 'sanitize-clipboard') return;
 
   try {
-    // Read clipboard (requires clipboardRead permission, which is optional)
-    const text = await navigator.clipboard.readText();
-    if (!text || text.trim().length === 0) return;
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
 
-    const detections = scanL1(text);
-    if (detections.length === 0) {
-      // Show brief notification — clipboard is clean
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon-48.png',
-        title: 'Prompt Sanitizer',
-        message: 'No sensitive information found in clipboard.',
-      });
-      return;
-    }
-
-    const sanitized = tokenize(text, detections);
-    await navigator.clipboard.writeText(sanitized);
-
-    // Show notification with count
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon-48.png',
-      title: 'Prompt Sanitizer',
-      message: `${detections.length} item${detections.length > 1 ? 's' : ''} sanitized in clipboard.`,
+    // Inject a one-shot script into the active tab to read + sanitize clipboard
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: sanitizeClipboardInPage,
     });
   } catch (err) {
-    console.error('Sanitize clipboard failed:', err);
+    console.error('Sanitize clipboard shortcut failed:', err);
   }
 });
+
+// This function runs in the page context (injected via executeScript)
+// It must be self-contained — no imports from the extension bundle
+function sanitizeClipboardInPage() {
+  // Send message to the content script (which has the scanner bundled)
+  chrome.runtime.sendMessage({ type: 'sanitize-clipboard-request' });
+}
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'open-popup') {
     chrome.action.setBadgeText({ text: '!' });
     chrome.action.setBadgeBackgroundColor({ color: '#DC3545' });
+  }
+
+  if (message.type === 'show-notification') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: message.title,
+      message: message.message,
+    });
   }
 
   if (message.type === 'copy-sanitized') {
