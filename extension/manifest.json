@@ -38,6 +38,10 @@
       ],
       "js": ["content/content-script.js"],
       "css": ["content/toast.css"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/copy-intercept.js"]
     }
   ],
   "commands": {

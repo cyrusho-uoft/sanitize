@@ -15,6 +15,7 @@ const entries = [
   { in: 'src/popup/popup.ts', out: 'dist/popup/popup.js', format: 'iife' },
   { in: 'src/background/service-worker.ts', out: 'dist/background/service-worker.js', format: 'esm' },
   { in: 'src/content/content-script.ts', out: 'dist/content/content-script.js', format: 'iife' },
+  { in: 'src/content/copy-intercept.ts', out: 'dist/content/copy-intercept.js', format: 'iife' },
   { in: 'src/onboarding/onboarding.ts', out: 'dist/onboarding/onboarding.js', format: 'iife' },
 ];
 

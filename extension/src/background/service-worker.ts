@@ -42,12 +42,29 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
-// Handle messages from content script
+// Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'open-popup') {
-    // Can't programmatically open popup, but we can set badge to draw attention
     chrome.action.setBadgeText({ text: '!' });
     chrome.action.setBadgeBackgroundColor({ color: '#DC3545' });
+  }
+
+  if (message.type === 'copy-sanitized') {
+    // Mode B: show badge + notification when copy was sanitized
+    chrome.action.setBadgeText({ text: String(message.count) });
+    chrome.action.setBadgeBackgroundColor({ color: '#DC3545' });
+
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: 'Prompt Sanitizer',
+      message: `${message.count} item${message.count > 1 ? 's' : ''} sanitized in your clipboard.`,
+    });
+
+    // Clear badge after 5 seconds
+    setTimeout(() => {
+      chrome.action.setBadgeText({ text: '' });
+    }, 5000);
   }
 });
 
