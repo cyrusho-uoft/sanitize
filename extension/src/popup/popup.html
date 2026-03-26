@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
+  <title>U of T Prompt Sanitizer</title>
+</head>
+<body>
+  <div class="popup">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <span class="header-shield">&#x1f6e1;</span>
+        <div>
+          <h1 class="header-title">Prompt Sanitizer</h1>
+          <span class="header-subtitle">University of Toronto</span>
+        </div>
+      </div>
+      <button class="header-settings" id="btn-settings" title="Settings" aria-label="Settings">
+        &#x2699;
+      </button>
+    </header>
+
+    <!-- Tab bar -->
+    <nav class="tabs" role="tablist">
+      <button class="tab active" role="tab" aria-selected="true" data-tab="scan">Scan</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="restore">Restore</button>
+    </nav>
+
+    <!-- Scan tab -->
+    <div class="tab-content active" id="tab-scan">
+      <div class="text-area-wrapper">
+        <textarea
+          id="input-text"
+          placeholder="Paste or type text to scan for sensitive information..."
+          aria-label="Text to scan for sensitive information"
+          rows="6"
+        ></textarea>
+      </div>
+
+      <!-- Status bar (hidden until scan) -->
+      <div class="status-bar" id="status-bar" hidden>
+        <span class="status-dot"></span>
+        <span class="status-text" id="status-text"></span>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="summary-bar" id="summary-bar" hidden>
+        <span class="summary-item" id="summary-high"></span>
+        <span class="summary-item" id="summary-medium"></span>
+      </div>
+
+      <!-- Detection cards -->
+      <div class="detections" id="detections" role="list" aria-label="Detected items"></div>
+
+      <!-- Actions -->
+      <div class="actions" id="actions" hidden>
+        <button class="btn btn-primary" id="btn-sanitize">Sanitize &amp; Copy</button>
+        <button class="btn btn-secondary" id="btn-dismiss-all">Dismiss All</button>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state" hidden>
+        <div class="empty-icon">&#x2713;</div>
+        <p class="empty-title">No sensitive information detected</p>
+        <p class="empty-subtitle">Your text looks safe to share with AI tools.</p>
+      </div>
+    </div>
+
+    <!-- Restore tab -->
+    <div class="tab-content" id="tab-restore">
+      <div class="text-area-wrapper">
+        <textarea
+          id="restore-text"
+          placeholder="Paste the AI's response here to restore original names and identifiers..."
+          aria-label="AI response text to restore"
+          rows="6"
+        ></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-restore">Restore &amp; Copy</button>
+      </div>
+
+      <div class="restore-result" id="restore-result" hidden>
+        <p id="restore-count"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

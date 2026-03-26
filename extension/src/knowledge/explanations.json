@@ -1,0 +1,47 @@
+{
+  "sin": {
+    "title": "Social Insurance Number",
+    "why": "SINs are permanent identifiers tied to tax records, employment, and benefits. Exposure enables identity theft and fraud. Never share with AI tools.",
+    "action": "This will be replaced with [SIN_REDACTED]. The AI can still process your request without the actual number."
+  },
+  "student_number": {
+    "title": "U of T Student Number",
+    "why": "Student numbers are linked to academic records in ACORN — grades, enrollment, financial aid. Combined with a name, this uniquely identifies a student.",
+    "action": "This will be replaced with [STUDENT_ID_N]. Use it as a reference when reading the AI's response."
+  },
+  "health_card": {
+    "title": "Ontario Health Card",
+    "why": "Health card numbers provide access to medical records and services. Exposure can lead to medical identity theft and insurance fraud.",
+    "action": "This will be replaced with [HEALTH_CARD_N]. Never share health card numbers with any AI tool."
+  },
+  "credit_card": {
+    "title": "Credit Card Number",
+    "why": "Credit card numbers enable unauthorized purchases. Even partial numbers combined with other information can be exploited.",
+    "action": "This will be replaced with [CREDIT_CARD_N]. If you need to discuss a transaction, use the last 4 digits only."
+  },
+  "email": {
+    "title": "Email Address",
+    "why": "Email addresses can be used for phishing, spam, and social engineering. They're often linked to other accounts and services.",
+    "action": "This will be replaced with [EMAIL_N]. Consider whether the AI actually needs the email to help you."
+  },
+  "email_uoft": {
+    "title": "U of T Email Address",
+    "why": "U of T email addresses contain UTORids and are directly linkable to the university directory, academic records, and internal systems.",
+    "action": "This will be replaced with [EMAIL_N]. U of T emails are especially sensitive because they connect to institutional identity."
+  },
+  "phone": {
+    "title": "Phone Number",
+    "why": "Phone numbers can be used for social engineering, SIM swapping, and unauthorized account access. They're increasingly used as identity verification.",
+    "action": "This will be replaced with [PHONE_N]. The AI doesn't need your real phone number to help you."
+  },
+  "utorid": {
+    "title": "UTORid",
+    "why": "UTORids are U of T login credentials used for ACORN, Quercus, email, library, and all university services. Sharing them risks unauthorized access to your academic life.",
+    "action": "This will be replaced with [UTORID_N]. Never share your UTORid with external services."
+  },
+  "employee_id": {
+    "title": "U of T Employee ID",
+    "why": "Employee IDs are linked to HR records, payroll, and internal systems. They can be used to impersonate staff or access restricted resources.",
+    "action": "This will be replaced with [EMPLOYEE_ID_N]."
+  }
+}

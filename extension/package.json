@@ -1,0 +1,17 @@
+{
+  "name": "uoft-prompt-sanitizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "U of T AI Prompt Sanitizer — Edge extension to detect and remove PII before sharing with AI tools",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}

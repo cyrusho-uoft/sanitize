@@ -1,0 +1,68 @@
+/* Toast notification for Mode A (paste-intercept on AI sites) */
+.prompt-sanitizer-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2147483647;
+  background: #002A5C;
+  color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 360px;
+  cursor: pointer;
+  animation: psSlidein 0.3s ease-out;
+  transition: opacity 0.3s ease;
+}
+
+.prompt-sanitizer-toast.fading {
+  opacity: 0;
+}
+
+@keyframes psSlidein {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.prompt-sanitizer-toast-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.prompt-sanitizer-toast-shield {
+  font-size: 16px;
+}
+
+.prompt-sanitizer-toast-details {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.prompt-sanitizer-toast-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.prompt-sanitizer-toast-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.prompt-sanitizer-toast-dot.high { background: #DC3545; }
+.prompt-sanitizer-toast-dot.medium { background: #FFC107; }
+
+.prompt-sanitizer-toast-action {
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.7;
+}
