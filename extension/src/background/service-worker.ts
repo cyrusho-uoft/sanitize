@@ -6,6 +6,13 @@
 import { scanL1 } from '../scanner';
 import { tokenize } from '../tokenizer';
 
+/** Show a badge on the extension icon that auto-clears */
+function showBadge(text: string, color: string, durationMs: number = 4000) {
+  chrome.action.setBadgeText({ text });
+  chrome.action.setBadgeBackgroundColor({ color });
+  setTimeout(() => chrome.action.setBadgeText({ text: '' }), durationMs);
+}
+
 // Handle keyboard shortcut (Ctrl+Shift+S) for Mode C
 // Reads the selected text on the active page, sanitizes it, copies to clipboard
 chrome.commands.onCommand.addListener(async (command) => {
@@ -23,23 +30,13 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     const text = result?.result as string;
     if (!text || text.trim().length === 0) {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon-48.png',
-        title: 'Prompt Sanitizer',
-        message: 'Select some text first, then press Ctrl+Shift+S.',
-      });
+      showBadge('?', '#856404', 3000);
       return;
     }
 
     const detections = scanL1(text);
     if (detections.length === 0) {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon-48.png',
-        title: 'Prompt Sanitizer',
-        message: 'No sensitive information found in selection.',
-      });
+      showBadge('\u2713', '#28A745', 3000);
       return;
     }
 
@@ -52,12 +49,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       args: [sanitized],
     });
 
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon-48.png',
-      title: 'Prompt Sanitizer',
-      message: `${detections.length} item${detections.length > 1 ? 's' : ''} sanitized and copied to clipboard.`,
-    });
+    showBadge(String(detections.length), '#DC3545', 4000);
   } catch (err) {
     console.error('Sanitize selection failed:', err);
   }
@@ -66,35 +58,11 @@ chrome.commands.onCommand.addListener(async (command) => {
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'open-popup') {
-    chrome.action.setBadgeText({ text: '!' });
-    chrome.action.setBadgeBackgroundColor({ color: '#DC3545' });
-  }
-
-  if (message.type === 'show-notification') {
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon-48.png',
-      title: message.title,
-      message: message.message,
-    });
+    showBadge('!', '#DC3545', 5000);
   }
 
   if (message.type === 'copy-sanitized') {
-    // Mode B: show badge + notification when copy was sanitized
-    chrome.action.setBadgeText({ text: String(message.count) });
-    chrome.action.setBadgeBackgroundColor({ color: '#DC3545' });
-
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon-48.png',
-      title: 'Prompt Sanitizer',
-      message: `${message.count} item${message.count > 1 ? 's' : ''} sanitized in your clipboard.`,
-    });
-
-    // Clear badge after 5 seconds
-    setTimeout(() => {
-      chrome.action.setBadgeText({ text: '' });
-    }, 5000);
+    showBadge(String(message.count), '#DC3545', 5000);
   }
 });
 
