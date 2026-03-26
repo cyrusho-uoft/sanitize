@@ -1,18 +1,23 @@
-// Offscreen document — has full clipboard access as an extension page.
-// The service worker creates this temporarily to read/write clipboard.
+// Offscreen document — reads/writes clipboard via execCommand.
+// navigator.clipboard requires focus; execCommand works without it
+// in extension pages with clipboardRead/clipboardWrite permissions.
+
+const textarea = document.getElementById('t') as HTMLTextAreaElement;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'read-clipboard') {
-    navigator.clipboard.readText()
-      .then(text => sendResponse({ text }))
-      .catch(err => sendResponse({ text: '', error: err.message }));
-    return true; // keep channel open for async response
+    textarea.value = '';
+    textarea.focus();
+    document.execCommand('paste');
+    sendResponse({ text: textarea.value });
+    return false;
   }
 
   if (message.type === 'write-clipboard') {
-    navigator.clipboard.writeText(message.text)
-      .then(() => sendResponse({ ok: true }))
-      .catch(err => sendResponse({ ok: false, error: err.message }));
-    return true;
+    textarea.value = message.text;
+    textarea.select();
+    document.execCommand('copy');
+    sendResponse({ ok: true });
+    return false;
   }
 });
