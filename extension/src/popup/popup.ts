@@ -180,7 +180,7 @@ btnRestore.addEventListener('click', async () => {
 
 // --- Settings button ---
 document.getElementById('btn-settings')?.addEventListener('click', () => {
-  // TODO: open settings view
+  window.location.href = '../settings/settings.html';
 });
 
 // --- Utility ---

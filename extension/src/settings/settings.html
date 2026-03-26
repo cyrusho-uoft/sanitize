@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="settings.css">
+  <title>Settings — Prompt Sanitizer</title>
+</head>
+<body>
+  <div class="settings">
+    <header class="header">
+      <button class="back-btn" id="btn-back" aria-label="Back to scanner">&larr;</button>
+      <h1>Settings</h1>
+    </header>
+
+    <section class="section">
+      <h2>Protection Mode</h2>
+      <div class="mode-options">
+        <label class="mode-option" data-mode="A">
+          <input type="radio" name="mode" value="A">
+          <div class="mode-content">
+            <strong>Smart Paste Protection</strong>
+            <span class="mode-badge">Recommended</span>
+            <p>Auto-sanitizes when you paste on AI sites (ChatGPT, Claude, Gemini).</p>
+          </div>
+        </label>
+        <label class="mode-option" data-mode="B">
+          <input type="radio" name="mode" value="B">
+          <div class="mode-content">
+            <strong>Always Protected</strong>
+            <p>Scans every copy on every site. Most protective.</p>
+          </div>
+        </label>
+        <label class="mode-option" data-mode="C">
+          <input type="radio" name="mode" value="C">
+          <div class="mode-content">
+            <strong>Manual</strong>
+            <p>Select text + Ctrl+Shift+S, or use the popup.</p>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Deep Scan</h2>
+      <label class="toggle-row">
+        <span>Enable Deep Scan by default</span>
+        <input type="checkbox" id="deep-scan-toggle">
+        <span class="toggle-switch"></span>
+      </label>
+      <p class="hint">Sends text to U of T's on-prem server for name and location detection. Requires Layer 2 backend (not yet available).</p>
+    </section>
+
+    <section class="section about">
+      <h2>About</h2>
+      <p><strong>U of T Prompt Sanitizer</strong> v0.1.0</p>
+      <p>Built for the University of Toronto community.</p>
+      <p>All Layer 1 detection runs locally in your browser. No data leaves your device.</p>
+    </section>
+
+    <div class="saved-indicator" id="saved-indicator" hidden>Settings saved</div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
