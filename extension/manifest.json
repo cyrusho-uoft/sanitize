@@ -50,7 +50,7 @@
       "suggested_key": {
         "default": "Ctrl+Shift+S"
       },
-      "description": "Scan and sanitize clipboard contents"
+      "description": "Sanitize selected text and copy to clipboard"
     }
   },
   "icons": {
