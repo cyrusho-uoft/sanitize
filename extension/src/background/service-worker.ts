@@ -50,10 +50,86 @@ chrome.commands.onCommand.addListener(async (command) => {
     });
 
     showBadge(String(detections.length), '#DC3545', 4000);
+
+    // Show toast on the active tab
+    const toastData = detections.map(d => ({ type: d.type, value: d.value, severity: d.severity }));
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: showSanitizerToast,
+      args: [toastData],
+    });
   } catch (err) {
     console.error('Sanitize selection failed:', err);
   }
 });
+
+// Injected into the active tab to show a toast notification
+function showSanitizerToast(detections: { type: string; value: string; severity: string }[]) {
+  // Remove existing toast
+  document.querySelector('.ps-toast')?.remove();
+
+  // Inject CSS if not already present
+  if (!document.querySelector('#ps-toast-style')) {
+    const style = document.createElement('style');
+    style.id = 'ps-toast-style';
+    style.textContent = `
+      .ps-toast {
+        position: fixed; bottom: 20px; right: 20px; z-index: 2147483647;
+        background: #002A5C; color: white; border-radius: 8px;
+        padding: 12px 16px; font-family: system-ui, sans-serif; font-size: 13px;
+        line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 360px; animation: psSlide 0.3s ease-out;
+      }
+      .ps-toast.ps-fading { opacity: 0; transition: opacity 0.3s; }
+      @keyframes psSlide {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .ps-toast-header { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 6px; }
+      .ps-toast-items { font-size: 11px; opacity: 0.85; }
+      .ps-toast-item { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+      .ps-toast-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .ps-toast-dot.high { background: #DC3545; }
+      .ps-toast-dot.medium { background: #FFC107; }
+      .ps-toast-footer { margin-top: 8px; font-size: 11px; opacity: 0.6; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const TYPE_LABELS: Record<string, string> = {
+    sin: 'Social Insurance Number', student_number: 'Student Number',
+    health_card: 'Health Card', credit_card: 'Credit Card',
+    email: 'Email Address', phone: 'Phone Number',
+    utorid: 'UTORid', username: 'Username', employee_id: 'Employee ID',
+  };
+
+  const toast = document.createElement('div');
+  toast.className = 'ps-toast';
+  toast.setAttribute('role', 'alert');
+
+  let itemsHtml = '';
+  const preview = detections.slice(0, 3);
+  for (const d of preview) {
+    const label = TYPE_LABELS[d.type] || d.type;
+    const val = d.value.length > 20 ? d.value.slice(0, 17) + '...' : d.value;
+    itemsHtml += `<div class="ps-toast-item"><span class="ps-toast-dot ${d.severity}"></span>${label}: <code>${val}</code></div>`;
+  }
+  if (detections.length > 3) {
+    itemsHtml += `<div class="ps-toast-item">+${detections.length - 3} more</div>`;
+  }
+
+  toast.innerHTML = `
+    <div class="ps-toast-header">&#x1f6e1; ${detections.length} item${detections.length > 1 ? 's' : ''} sanitized &amp; copied</div>
+    <div class="ps-toast-items">${itemsHtml}</div>
+    <div class="ps-toast-footer">Ctrl+V to paste sanitized text</div>
+  `;
+
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('ps-fading');
+    setTimeout(() => toast.remove(), 300);
+  }, 6000);
+}
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
