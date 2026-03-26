@@ -31,5 +31,6 @@ export const TYPE_PRIORITY: Record<string, number> = {
   employee_id: 60,
   utorid: 50,
   email: 40,
+  username: 35,
   phone: 30,
 };

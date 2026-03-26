@@ -39,6 +39,16 @@
     "why": "UTORids are U of T login credentials used for ACORN, Quercus, email, library, and all university services. Sharing them risks unauthorized access to your academic life.",
     "action": "This will be replaced with [UTORID_N]. Never share your UTORid with external services."
   },
+  "username": {
+    "title": "Username / @Mention",
+    "why": "Usernames and @mentions are linked to real identities on social media, Slack, Teams, and GitHub. They can be used to find someone's full profile, activity history, and connections.",
+    "action": "This will be replaced with [USERNAME_N]. Remove usernames before sharing with AI unless the account is already public."
+  },
+  "username_url": {
+    "title": "Profile URL",
+    "why": "Profile URLs directly link to someone's public identity — their posts, connections, work history, and activity. Sharing these with AI tools exposes the person's digital identity.",
+    "action": "This will be replaced with [USERNAME_N]. Consider whether the AI needs the actual profile link."
+  },
   "employee_id": {
     "title": "U of T Employee ID",
     "why": "Employee IDs are linked to HR records, payroll, and internal systems. They can be used to impersonate staff or access restricted resources.",

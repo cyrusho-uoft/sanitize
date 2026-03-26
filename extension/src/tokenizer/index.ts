@@ -14,6 +14,7 @@ const TYPE_LABELS: Record<string, string> = {
   email: 'EMAIL',
   phone: 'PHONE',
   utorid: 'UTORID',
+  username: 'USERNAME',
   employee_id: 'EMPLOYEE_ID',
   person_name: 'PERSON',
   location: 'LOCATION',
