@@ -17,9 +17,18 @@ async function isModeBEnabled(): Promise<boolean> {
   }
 }
 
-// Handle Ctrl+Shift+S (Mode C) — service worker delegates clipboard work here
+// Handle Ctrl+Shift+S (Mode C) — two listeners for reliability
+// 1. Message from service worker (via chrome.commands)
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'sanitize-clipboard-request') {
+    handleClipboardSanitize();
+  }
+});
+
+// 2. Direct keyboard listener as fallback (in case chrome.commands doesn't fire)
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+    e.preventDefault();
     handleClipboardSanitize();
   }
 });
