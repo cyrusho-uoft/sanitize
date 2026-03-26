@@ -7,29 +7,61 @@ import { scanL1 } from '../scanner';
 import { tokenize } from '../tokenizer';
 
 // Handle keyboard shortcut (Ctrl+Shift+S) for Mode C
-// Clipboard API isn't available in service workers, so we delegate to the active tab
+// Uses an offscreen document to access the clipboard (MV3 pattern)
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== 'sanitize-clipboard') return;
-
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
-
-    // Inject a one-shot script into the active tab to read + sanitize clipboard
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: sanitizeClipboardInPage,
-    });
-  } catch (err) {
-    console.error('Sanitize clipboard shortcut failed:', err);
-  }
+  await sanitizeViaOffscreen();
 });
 
-// This function runs in the page context (injected via executeScript)
-// It must be self-contained — no imports from the extension bundle
-function sanitizeClipboardInPage() {
-  // Send message to the content script (which has the scanner bundled)
-  chrome.runtime.sendMessage({ type: 'sanitize-clipboard-request' });
+async function ensureOffscreen() {
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+  });
+  if (contexts.length === 0) {
+    await chrome.offscreen.createDocument({
+      url: 'offscreen/offscreen.html',
+      reasons: [chrome.offscreen.Reason.CLIPBOARD],
+      justification: 'Read/write clipboard for PII sanitization',
+    });
+  }
+}
+
+async function sanitizeViaOffscreen() {
+  try {
+    await ensureOffscreen();
+
+    // Read clipboard via offscreen document
+    const { text, error } = await chrome.runtime.sendMessage({ type: 'read-clipboard' }) as { text: string; error?: string };
+    if (error || !text || text.trim().length === 0) {
+      if (error) console.error('Clipboard read failed:', error);
+      return;
+    }
+
+    const detections = scanL1(text);
+    if (detections.length === 0) {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon-48.png',
+        title: 'Prompt Sanitizer',
+        message: 'No sensitive information found in clipboard.',
+      });
+      return;
+    }
+
+    const sanitized = tokenize(text, detections);
+
+    // Write sanitized text via offscreen document
+    await chrome.runtime.sendMessage({ type: 'write-clipboard', text: sanitized });
+
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: 'Prompt Sanitizer',
+      message: `${detections.length} item${detections.length > 1 ? 's' : ''} sanitized in clipboard.`,
+    });
+  } catch (err) {
+    console.error('Sanitize clipboard failed:', err);
+  }
 }
 
 // Handle messages from content scripts

@@ -9,7 +9,8 @@
     "clipboardWrite",
     "notifications",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "offscreen"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",

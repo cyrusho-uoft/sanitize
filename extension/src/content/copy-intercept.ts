@@ -17,49 +17,8 @@ async function isModeBEnabled(): Promise<boolean> {
   }
 }
 
-// Handle Ctrl+Shift+S (Mode C) — two listeners for reliability
-// 1. Message from service worker (via chrome.commands)
-chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
-  if (message.type === 'sanitize-clipboard-request') {
-    handleClipboardSanitize();
-  }
-});
-
-// 2. Direct keyboard listener as fallback (in case chrome.commands doesn't fire)
-document.addEventListener('keydown', (e: KeyboardEvent) => {
-  if (e.ctrlKey && e.shiftKey && e.key === 'S') {
-    e.preventDefault();
-    handleClipboardSanitize();
-  }
-});
-
-async function handleClipboardSanitize() {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text || text.trim().length === 0) return;
-
-    const detections = scanL1(text);
-    if (detections.length === 0) {
-      chrome.runtime.sendMessage({
-        type: 'show-notification',
-        title: 'Prompt Sanitizer',
-        message: 'No sensitive information found in clipboard.',
-      });
-      return;
-    }
-
-    const sanitized = tokenize(text, detections);
-    await navigator.clipboard.writeText(sanitized);
-
-    chrome.runtime.sendMessage({
-      type: 'show-notification',
-      title: 'Prompt Sanitizer',
-      message: `${detections.length} item${detections.length > 1 ? 's' : ''} sanitized in clipboard.`,
-    });
-  } catch (err) {
-    console.error('Clipboard sanitize failed:', err);
-  }
-}
+// Mode C keyboard shortcut is handled by the service worker + offscreen document.
+// Content script only handles Mode B copy-intercept.
 
 document.addEventListener('copy', async (e: ClipboardEvent) => {
   if (!(await isModeBEnabled())) return;
