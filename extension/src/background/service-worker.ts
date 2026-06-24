@@ -47,10 +47,11 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     const sanitized = tokenize(text, detections);
 
-    // Write sanitized text to clipboard via the active tab
+    // Write sanitized text to clipboard via the active tab.
+    // chrome-types declares `func` as () => void, so cast — args are passed at runtime.
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: (s: string) => navigator.clipboard.writeText(s),
+      func: ((s: string) => navigator.clipboard.writeText(s)) as unknown as () => void,
       args: [sanitized],
     });
 
@@ -60,7 +61,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     const toastData = detections.map(d => ({ type: d.type, value: d.value, severity: d.severity }));
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: showSanitizerToast,
+      func: showSanitizerToast as () => void,
       args: [toastData],
     });
   } catch (err) {
@@ -147,7 +148,7 @@ function showSanitizerToast(detections: { type: string; value: string; severity:
   }, 6000);
 }
 
-// Handle messages from content scripts
+// Handle messages from content scripts (synchronous — no async response)
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'open-popup') {
     showBadge('!', '#DC3545', 5000);
@@ -156,6 +157,7 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'copy-sanitized') {
     showBadge(String(message.count), '#DC3545', 5000);
   }
+  return false; // not handling asynchronously
 });
 
 // L2 deep-scan proxy: content scripts/popup can't reliably fetch cross-origin, so the
