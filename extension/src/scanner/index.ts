@@ -4,6 +4,7 @@ import { mergeDetections } from './merge';
 
 export { Detection, type Severity, type Layer } from './types';
 export { mergeDetections } from './merge';
+export { scanL2, type L2Config, DEFAULT_BACKEND_URL } from './l2';
 
 /**
  * Run all L1 patterns against the given text.

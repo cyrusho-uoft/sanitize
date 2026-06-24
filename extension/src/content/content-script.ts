@@ -6,54 +6,78 @@
  * is found, replaces the paste with sanitized text + shows a toast.
  */
 
-import { scanL1 } from '../scanner';
+import { scanL1, Detection } from '../scanner';
 import { tokenize } from '../tokenizer';
 import explanations from '../knowledge/explanations.json';
 
-// Check if Mode A is enabled (default: true)
-async function isModeAEnabled(): Promise<boolean> {
-  try {
-    const result = await chrome.storage.local.get('mode');
-    return !result.mode || result.mode === 'A';
-  } catch {
-    return true;
-  }
+interface FieldSnapshot {
+  value: string;
+  start: number;
+  end: number;
 }
 
-// Listen for paste events on the page
-document.addEventListener('paste', async (e: ClipboardEvent) => {
-  if (!(await isModeAEnabled())) return;
+// Cache mode synchronously so the paste handler can decide whether to intercept WITHOUT an
+// await (chrome.storage is async, but preventDefault must run during the event's synchronous
+// phase). Defaults to the install default (Mode A on).
+let modeCache = 'A';
+chrome.storage.local.get('mode', (r) => {
+  modeCache = r.mode || 'A';
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.mode) modeCache = changes.mode.newValue || 'A';
+});
+
+// Mode A paste-intercept.
+//
+// Detection (L1) and the replacement run SYNCHRONOUSLY inside the paste event: the native
+// paste is cancelled and the sanitized text inserted before control yields, so there is no
+// async gap in which raw PII could land, the paste could be dropped, or concurrent typing
+// could be clobbered. We only cancel the native paste when L1 actually finds PII; clean text
+// and Mode-A-off pastes proceed natively (preserving rich content).
+//
+// Deep Scan (L2) is intentionally NOT applied here: mutating a third-party rich contentEditable
+// editor asynchronously is unreliable and risks corrupting the de-tokenization map. L2 runs in
+// the async-safe flows instead — the popup scanner and the Ctrl+Shift+S shortcut.
+document.addEventListener('paste', (e: ClipboardEvent) => {
+  if (modeCache !== 'A') return; // Mode A off → native paste untouched
 
   const text = e.clipboardData?.getData('text/plain');
   if (!text || text.trim().length === 0) return;
 
-  const detections = scanL1(text);
-  if (detections.length === 0) return; // Clean text — let paste through normally
+  const target = e.target as HTMLElement;
+  const field =
+    target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement ? target : null;
+  if (!field && !target?.isContentEditable) return; // not an editable target we handle
 
-  // PII found — sanitize and replace
+  const detections = scanL1(text);
+  if (detections.length === 0) return; // clean text → native paste untouched
+
+  // PII found — snapshot the field, cancel the native paste, and insert the sanitized text.
+  const snap: FieldSnapshot | null = field
+    ? { value: field.value, start: field.selectionStart ?? 0, end: field.selectionEnd ?? 0 }
+    : null;
   e.preventDefault();
 
   const sanitized = tokenize(text, detections);
-
-  // Insert sanitized text into the active element
-  const target = e.target as HTMLElement;
-  if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
-    const start = target.selectionStart ?? 0;
-    const end = target.selectionEnd ?? 0;
-    const before = target.value.slice(0, start);
-    const after = target.value.slice(end);
-    target.value = before + sanitized + after;
-    target.selectionStart = target.selectionEnd = start + sanitized.length;
-    target.dispatchEvent(new Event('input', { bubbles: true }));
+  if (field && snap) {
+    field.value = snap.value.slice(0, snap.start) + sanitized + snap.value.slice(snap.end);
+    field.selectionStart = field.selectionEnd = snap.start + sanitized.length;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
   } else if (target.isContentEditable) {
     document.execCommand('insertText', false, sanitized);
   }
 
-  // Show toast
   showToast(detections);
 }, true);
 
-function showToast(detections: typeof import('../scanner').Detection extends (infer T)[] ? T[] : never) {
+/** Escape text before interpolating into innerHTML — page-controlled values are untrusted. */
+function escapeHtml(s: string): string {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function showToast(detections: Detection[]) {
   // Remove existing toast if any
   document.querySelector('.prompt-sanitizer-toast')?.remove();
 
@@ -74,7 +98,7 @@ function showToast(detections: typeof import('../scanner').Detection extends (in
     detailsHtml += `
       <div class="prompt-sanitizer-toast-detail-item">
         <span class="prompt-sanitizer-toast-dot ${d.severity}"></span>
-        ${label}: <code>${d.value.length > 20 ? d.value.slice(0, 17) + '...' : d.value}</code>
+        ${escapeHtml(label)}: <code>${escapeHtml(d.value.length > 20 ? d.value.slice(0, 17) + '...' : d.value)}</code>
       </div>
     `;
   }

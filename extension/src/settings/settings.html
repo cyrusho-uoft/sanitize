@@ -47,7 +47,12 @@
         <input type="checkbox" id="deep-scan-toggle">
         <span class="toggle-switch"></span>
       </label>
-      <p class="hint">Sends text to U of T's on-prem server for name and location detection. Requires Layer 2 backend (not yet available).</p>
+      <p class="hint">When enabled, the popup scanner and the Ctrl+Shift+S shortcut also send text to U of T's on-prem Presidio server for name, location, organization, and grant-number detection (Layer 2). Layer 1 always runs locally; Layer 2 only runs while this is on. Paste-interception (Mode A) stays Layer 1 only for reliability.</p>
+      <label class="toggle-row">
+        <span>Backend URL</span>
+        <input type="url" id="backend-url" placeholder="http://localhost:8000" spellcheck="false" autocomplete="off" style="flex:1;min-width:0;margin-left:12px;">
+      </label>
+      <p class="hint">Address of the Layer 2 gateway. Default: http://localhost:8000. A non-localhost address will prompt for permission to reach it.</p>
     </section>
 
     <section class="section about">
