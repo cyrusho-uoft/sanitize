@@ -1,0 +1,10 @@
+# Lint config for the backend. Keep it focused on real problems (pyflakes + key
+# pycodestyle errors); line-length style is relaxed since explanation strings are long.
+line-length = 100
+
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]  # line-too-long: explanation text is intentionally long
+
+[lint.per-file-ignores]
+"tests/*" = ["F811"]  # pytest fixtures can shadow names
