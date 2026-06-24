@@ -1,0 +1,11 @@
+{
+  "$schema": "never-stale/marker@1",
+  "enabled": true,
+  "version": "0.10.1",
+  "spoken": "Traditional Chinese (Hong Kong)",
+  "spokenCode": "zh-HK",
+  "written": "English",
+  "writtenCode": "en",
+  "events": { "compact": true, "edit": true },
+  "createdAt": "2026-06-22"
+}

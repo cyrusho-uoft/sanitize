@@ -3,8 +3,9 @@
  * Handles keyboard shortcuts and extension badge updates.
  */
 
-import { scanL1 } from '../scanner';
+import { scanL1, scanL2, mergeDetections } from '../scanner';
 import { tokenize } from '../tokenizer';
+import { loadDeepScanSettings } from '../settings/deep-scan';
 
 /** Show a badge on the extension icon that auto-clears */
 function showBadge(text: string, color: string, durationMs: number = 4000) {
@@ -34,7 +35,11 @@ chrome.commands.onCommand.addListener(async (command) => {
       return;
     }
 
-    const detections = scanL1(text);
+    const l1 = scanL1(text);
+    const ds = await loadDeepScanSettings();
+    const detections = ds.enabled
+      ? mergeDetections(l1, await scanL2(text, { url: ds.backendUrl }))
+      : l1;
     if (detections.length === 0) {
       showBadge('\u2713', '#28A745', 3000);
       return;
@@ -42,10 +47,11 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     const sanitized = tokenize(text, detections);
 
-    // Write sanitized text to clipboard via the active tab
+    // Write sanitized text to clipboard via the active tab.
+    // chrome-types declares `func` as () => void, so cast — args are passed at runtime.
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: (s: string) => navigator.clipboard.writeText(s),
+      func: ((s: string) => navigator.clipboard.writeText(s)) as unknown as () => void,
       args: [sanitized],
     });
 
@@ -55,7 +61,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     const toastData = detections.map(d => ({ type: d.type, value: d.value, severity: d.severity }));
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: showSanitizerToast,
+      func: showSanitizerToast as () => void,
       args: [toastData],
     });
   } catch (err) {
@@ -91,6 +97,7 @@ function showSanitizerToast(detections: { type: string; value: string; severity:
       .ps-toast-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
       .ps-toast-dot.high { background: #DC3545; }
       .ps-toast-dot.medium { background: #FFC107; }
+      .ps-toast-dot.low { background: #6C757D; }
       .ps-toast-footer { margin-top: 8px; font-size: 11px; opacity: 0.6; }
     `;
     document.head.appendChild(style);
@@ -101,6 +108,16 @@ function showSanitizerToast(detections: { type: string; value: string; severity:
     health_card: 'Health Card', credit_card: 'Credit Card',
     email: 'Email Address', phone: 'Phone Number',
     utorid: 'UTORid', username: 'Username', employee_id: 'Employee ID',
+    person_name: 'Person Name', location: 'Location',
+    organization: 'Organization', grant_number: 'Grant Number',
+  };
+
+  // Escape page-controlled values before innerHTML interpolation (self-contained: this
+  // function is injected via executeScript and cannot reference outer helpers).
+  const esc = (s: string) => {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
   };
 
   const toast = document.createElement('div');
@@ -112,7 +129,7 @@ function showSanitizerToast(detections: { type: string; value: string; severity:
   for (const d of preview) {
     const label = TYPE_LABELS[d.type] || d.type;
     const val = d.value.length > 20 ? d.value.slice(0, 17) + '...' : d.value;
-    itemsHtml += `<div class="ps-toast-item"><span class="ps-toast-dot ${d.severity}"></span>${label}: <code>${val}</code></div>`;
+    itemsHtml += `<div class="ps-toast-item"><span class="ps-toast-dot ${d.severity}"></span>${esc(label)}: <code>${esc(val)}</code></div>`;
   }
   if (detections.length > 3) {
     itemsHtml += `<div class="ps-toast-item">+${detections.length - 3} more</div>`;
@@ -131,7 +148,7 @@ function showSanitizerToast(detections: { type: string; value: string; severity:
   }, 6000);
 }
 
-// Handle messages from content scripts
+// Handle messages from content scripts (synchronous — no async response)
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'open-popup') {
     showBadge('!', '#DC3545', 5000);
@@ -140,6 +157,28 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'copy-sanitized') {
     showBadge(String(message.count), '#DC3545', 5000);
   }
+  return false; // not handling asynchronously
+});
+
+// L2 deep-scan proxy: content scripts/popup can't reliably fetch cross-origin, so the
+// network call runs here (the worker holds the backend host permission). Gated on the
+// deepScanEnabled setting; always responds (fails open to an empty result).
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type !== 'deep-scan') return; // not ours — let other listeners handle it
+  (async () => {
+    try {
+      const ds = await loadDeepScanSettings();
+      if (!ds.enabled || !message.text) {
+        sendResponse({ detections: [] });
+        return;
+      }
+      const detections = await scanL2(message.text, { url: ds.backendUrl });
+      sendResponse({ detections });
+    } catch {
+      sendResponse({ detections: [] });
+    }
+  })();
+  return true; // keep the message channel open for the async sendResponse
 });
 
 // Clear badge when popup opens

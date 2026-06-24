@@ -19,6 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
   person_name: 'PERSON',
   location: 'LOCATION',
   organization: 'ORG',
+  grant_number: 'GRANT',
 };
 
 const STORAGE_KEY = 'prompt_sanitizer_mappings';

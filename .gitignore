@@ -23,3 +23,9 @@ Desktop.ini
 .idea/
 *.swp
 *.swo
+.gstack/
+
+# Python
+.venv/
+__pycache__/
+*.pyc

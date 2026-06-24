@@ -5,25 +5,63 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
+
+# Least privilege — these jobs only read the repo.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  extension:
+    name: Extension — typecheck, test, build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
 
       - name: Install dependencies
-        working-directory: extension
         run: npm ci
 
-      - name: Run tests
-        working-directory: extension
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
         run: npm test
 
-      - name: Build extension
-        working-directory: extension
+      - name: Build
         run: npm run build
+
+  backend:
+    name: Backend — lint, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: python -m pytest tests/ -q

@@ -1,6 +1,6 @@
 # Privacy Policy — U of T Prompt Sanitizer
 
-**Last updated:** 2026-03-25
+**Last updated:** 2026-06-23
 
 ## Overview
 
@@ -19,12 +19,13 @@ The U of T Prompt Sanitizer is a browser extension built for the University of T
 ### Layer 1 (browser-side detection)
 All Layer 1 PII detection runs **entirely in your browser**. Text is scanned using pattern matching (regex) within the extension's local process. No text ever leaves your device. No network requests are made during scanning.
 
-### Layer 2 (on-premises NER — future)
-When available, Layer 2 sends text to a Microsoft Presidio server hosted on the University of Toronto's ITS Private Cloud infrastructure. This data:
-- Never leaves U of T's network boundary
+### Layer 2 (on-premises NER — opt-in)
+Layer 2 ("Deep Scan") is **off by default**. When you enable it in Settings, text is sent to a Microsoft Presidio server hosted on the University of Toronto's ITS Private Cloud infrastructure (the server address is configurable in Settings; it defaults to a local development server). This data:
+- Is only sent when you explicitly enable "Deep Scan"; with Deep Scan off, no text ever leaves your device
+- Never leaves U of T's network boundary (when pointed at the U of T Private Cloud gateway)
 - Is processed in memory and not stored
 - Is not logged or retained after the scan completes
-- Is only sent when the user explicitly enables "Deep Scan"
+- Carries only the text you are scanning — no identifiers, browsing history, or account data
 
 ### Reversible tokenization
 Token mappings (the link between placeholders like [PERSON_1] and original values) are stored in your browser's sessionStorage. This data:
@@ -46,6 +47,7 @@ The extension requests these browser permissions:
 | `activeTab` | Access the currently active tab for the keyboard shortcut |
 | `offscreen` | Create a temporary background page for clipboard operations |
 | Host permissions (AI sites) | Run paste-interception on ChatGPT, Claude, and Gemini |
+| Host permissions (L2 backend) | Send text to the Deep Scan gateway (default `http://localhost:8000`) — only used while Deep Scan is enabled. A non-localhost gateway is requested at runtime (you'll be prompted) and not granted until you approve it. |
 | `<all_urls>` | Run copy-interception when Mode B (Always Protected) is enabled |
 
 ## Data flow diagram
@@ -64,8 +66,8 @@ The extension requests these browser permissions:
 │           (never synced, never uploaded)  │
 └─────────────────────────────────────────┘
           │
-          │ ONLY if Deep Scan enabled (future)
-          │ ONLY to U of T Private Cloud
+          │ ONLY if Deep Scan enabled (off by default)
+          │ ONLY to the configured gateway (default: U of T Private Cloud)
           ▼
 ┌─────────────────────────────────────────┐
 │  U of T ITS Private Cloud                │

@@ -1,5 +1,6 @@
-import { scanL1, Detection } from '../scanner';
+import { scanL1, mergeDetections, Detection } from '../scanner';
 import { tokenize, detokenize, clearMappings } from '../tokenizer';
+import { loadDeepScanSettings, requestDeepScan } from '../settings/deep-scan';
 import explanations from '../knowledge/explanations.json';
 
 let currentDetections: Detection[] = [];
@@ -45,9 +46,19 @@ inputText.addEventListener('paste', () => {
   setTimeout(runScan, 0);
 });
 
-function runScan() {
+async function runScan() {
   const text = inputText.value;
-  currentDetections = scanL1(text);
+  const l1 = scanL1(text);
+  currentDetections = l1;
+  renderResults(); // render L1 immediately; L2 (if enabled) refines below
+
+  if (!text.trim()) return;
+  const ds = await loadDeepScanSettings();
+  if (!ds.enabled) return;
+
+  const l2 = await requestDeepScan(text);
+  if (inputText.value !== text) return; // input changed during the async scan — drop stale result
+  currentDetections = mergeDetections(l1, l2);
   renderResults();
 }
 
@@ -100,7 +111,7 @@ function renderResults() {
     card.innerHTML = `
       <button class="detection-dismiss" title="Dismiss" aria-label="Dismiss this detection">&times;</button>
       <div class="detection-label ${detection.severity}">
-        ${exp?.title || detection.type}
+        ${escapeHtml(exp?.title || detection.type)}
         <span class="layer-badge">${detection.layer}</span>
         <span>${detection.severity.toUpperCase()}</span>
       </div>

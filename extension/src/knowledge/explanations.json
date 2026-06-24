@@ -53,5 +53,25 @@
     "title": "U of T Employee ID",
     "why": "Employee IDs are linked to HR records, payroll, and internal systems. They can be used to impersonate staff or access restricted resources.",
     "action": "This will be replaced with [EMPLOYEE_ID_N]."
+  },
+  "person_name": {
+    "title": "Person Name",
+    "why": "Full names combined with institutional context uniquely identify individuals. Detected by Layer 2 AI-powered name recognition.",
+    "action": "This will be replaced with [PERSON_N]. The AI can still follow your request without the real name."
+  },
+  "location": {
+    "title": "Location",
+    "why": "Addresses and specific locations can identify individuals when combined with a role, department, or other context.",
+    "action": "This will be replaced with [LOCATION_N]."
+  },
+  "organization": {
+    "title": "Organization",
+    "why": "Organization names narrow identification when combined with role, department, or other context.",
+    "action": "This will be replaced with [ORG_N]."
+  },
+  "grant_number": {
+    "title": "Research Grant Number",
+    "why": "Grant numbers link to funding records (NSERC/CIHR/SSHRC) and can identify principal investigators and projects.",
+    "action": "This will be replaced with [GRANT_N]."
   }
 }

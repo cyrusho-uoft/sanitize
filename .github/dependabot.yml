@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # GitHub Actions — keep workflow action versions current (supply-chain).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Extension (npm)
+  - package-ecosystem: npm
+    directory: /extension
+    schedule:
+      interval: weekly
+
+  # Backend (pip)
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly

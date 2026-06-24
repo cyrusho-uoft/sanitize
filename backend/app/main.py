@@ -1,5 +1,7 @@
 """FastAPI gateway — orchestrates Presidio + enriches with explanations."""
 
+import os
+
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,10 +19,16 @@ app = FastAPI(
     description="Layer 2 PII detection gateway — on-premises Presidio NER + U of T custom recognizers",
 )
 
-# CORS — allow extension origin
+# CORS — restrict to configured origins (extension ID + campus IPs in production).
+# Set SANITIZER_ALLOWED_ORIGINS as a comma-separated list, e.g.
+#   SANITIZER_ALLOWED_ORIGINS="chrome-extension://<id>,https://<campus-host>"
+# Defaults to localhost dev origins only — never wildcard.
+_origins_env = os.getenv("SANITIZER_ALLOWED_ORIGINS", "http://localhost,http://127.0.0.1")
+ALLOWED_ORIGINS = [o.strip() for o in _origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production: restrict to extension ID + campus IPs
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )

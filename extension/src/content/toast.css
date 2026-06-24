@@ -60,6 +60,7 @@
 
 .prompt-sanitizer-toast-dot.high { background: #DC3545; }
 .prompt-sanitizer-toast-dot.medium { background: #FFC107; }
+.prompt-sanitizer-toast-dot.low { background: #6C757D; }
 
 .prompt-sanitizer-toast-action {
   margin-top: 8px;
