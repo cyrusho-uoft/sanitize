@@ -5,6 +5,11 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      # CORS allowlist — comma-separated origins. Restrict to the extension ID + campus
+      # hosts in production, e.g. chrome-extension://<id>,https://<campus-host>.
+      - SANITIZER_ALLOWED_ORIGINS=${SANITIZER_ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1}
+      # Analytics SQLite location — defaults to /tmp (the mounted volume below).
+      - SANITIZER_DB_PATH=${SANITIZER_DB_PATH:-/tmp/sanitizer_analytics.db}
     volumes:
       - analytics-data:/tmp
     restart: unless-stopped

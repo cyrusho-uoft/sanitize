@@ -1,13 +1,20 @@
 """Analytics aggregation — anonymous category counts only."""
 
 import json
+import os
 import sqlite3
 import csv
 import io
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path("/tmp/sanitizer_analytics.db")
+# DB location — override with SANITIZER_DB_PATH (point at a mounted/durable volume in
+# production). Defaults to the OS temp dir so it works cross-platform (POSIX /tmp,
+# Windows %TEMP%) rather than a hardcoded POSIX /tmp path.
+DB_PATH = Path(
+    os.getenv("SANITIZER_DB_PATH", str(Path(tempfile.gettempdir()) / "sanitizer_analytics.db"))
+)
 
 
 def get_db() -> sqlite3.Connection:
