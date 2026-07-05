@@ -60,6 +60,13 @@ jobs:
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
 
+      # Tests below use mocks and never install the runtime deps, so a
+      # dry-run resolve is the only CI guard against Dependabot bumping
+      # requirements.txt into an uninstallable state (e.g. presidio-analyzer
+      # excludes specific spacy versions).
+      - name: Resolve runtime dependencies (dry run)
+        run: pip install --dry-run --quiet -r requirements.txt
+
       - name: Lint
         run: ruff check .
 
