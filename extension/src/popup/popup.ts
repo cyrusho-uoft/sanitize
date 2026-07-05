@@ -1,5 +1,5 @@
 import { scanL1, mergeDetections, Detection } from '../scanner';
-import { tokenize, detokenize, clearMappings } from '../tokenizer';
+import { tokenize, detokenize } from '../tokenizer';
 import { loadDeepScanSettings, requestDeepScan } from '../settings/deep-scan';
 import explanations from '../knowledge/explanations.json';
 
@@ -168,11 +168,11 @@ btnRestore.addEventListener('click', async () => {
   const text = restoreText.value;
   if (!text.trim()) return;
 
-  const { result, restored } = detokenize(text);
+  const { result, restored } = await detokenize(text);
 
   if (restored === 0) {
     restoreResult.hidden = false;
-    restoreCount.textContent = 'No tokens found in this text. Make sure you sanitized first in this tab session.';
+    restoreCount.textContent = 'No tokens found in this text. Make sure you sanitized first in this browser session.';
     restoreCount.style.color = 'var(--text-secondary)';
     return;
   }
