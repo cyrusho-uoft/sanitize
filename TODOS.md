@@ -24,7 +24,7 @@
 - Sequential pipeline → parallel detection with priority-based merge
 - "FastAPI or Flask" → Presidio native API + FastAPI gateway sidecar
 - Popup-only UX → three configurable modes (A: paste-intercept on AI sites, B: copy-intercept everywhere, C: manual popup + hotkey)
-- Add reversible tokenization with sessionStorage
+- Add reversible tokenization with chrome.storage.session (originally sessionStorage; replaced for cross-context restore — see PRIVACY.md)
 - Add phased shipping strategy (L1 first, L2 behind feature flag)
 - Add pattern registry architecture (one file per pattern)
 **Depends on:** Nothing — can be done immediately.

@@ -5,6 +5,7 @@
 
 import { scanL1, scanL2, mergeDetections } from '../scanner';
 import { tokenize } from '../tokenizer';
+import { PERSIST_MESSAGE_TYPE, writeBatchDirect, MappingBatch } from '../tokenizer/mapping-store';
 import { loadDeepScanSettings } from '../settings/deep-scan';
 
 /** Show a badge on the extension icon that auto-clears */
@@ -148,14 +149,33 @@ function showSanitizerToast(detections: { type: string; value: string; severity:
   }, 6000);
 }
 
-// Handle messages from content scripts (synchronous — no async response)
-chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+// Handle messages from content scripts
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'open-popup') {
     showBadge('!', '#DC3545', 5000);
   }
 
   if (message.type === 'copy-sanitized') {
     showBadge(String(message.count), '#DC3545', 5000);
+  }
+
+  // Token-mapping batches from content scripts — they can't write
+  // chrome.storage.session themselves, so the worker lands the write and
+  // acknowledges it. The async response also keeps the worker alive until
+  // the write completes; on failure the sender keeps a local fallback copy.
+  if (message.type === PERSIST_MESSAGE_TYPE) {
+    const batch = message.batch as MappingBatch | undefined;
+    if (batch && Array.isArray(batch.mappings)) {
+      writeBatchDirect(batch)
+        .then(() => sendResponse({ ok: true }))
+        .catch((err) => {
+          console.error('Prompt Sanitizer: failed to persist token mappings:', err);
+          sendResponse({ ok: false });
+        });
+      return true; // async sendResponse
+    }
+    sendResponse({ ok: false });
+    return false;
   }
   return false; // not handling asynchronously
 });

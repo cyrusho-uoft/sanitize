@@ -17,3 +17,7 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # presidio-analyzer 2.2.363 excludes spacy 3.8.14 (resolver conflict).
+      - dependency-name: spacy
+        versions: ["3.8.14"]

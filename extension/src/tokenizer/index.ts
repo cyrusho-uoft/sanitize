@@ -1,10 +1,11 @@
 import { Detection } from '../scanner/types';
-
-interface TokenMapping {
-  placeholder: string;
-  original: string;
-  type: string;
-}
+import {
+  TokenMapping,
+  persistMappings,
+  loadAllMappings,
+  clearAllMappings,
+  countMappings,
+} from './mapping-store';
 
 const TYPE_LABELS: Record<string, string> = {
   sin: 'SIN_REDACTED',
@@ -22,17 +23,35 @@ const TYPE_LABELS: Record<string, string> = {
   grant_number: 'GRANT',
 };
 
-const STORAGE_KEY = 'prompt_sanitizer_mappings';
+// Writes started by this context — detokenize awaits them so a
+// tokenize → detokenize sequence in one context never misses its own batch.
+let pendingWrites: Promise<void>[] = [];
 
 /**
  * Replace detected PII with semantic placeholders.
- * Returns sanitized text and stores the mapping in sessionStorage.
+ * Synchronous (paste/copy handlers depend on it); the mapping batch is
+ * persisted to chrome.storage.session in the background via mapping-store.
+ *
+ * Each call mints a random batch tag embedded in every placeholder
+ * (e.g. [EMAIL_1~KQXR]) so placeholders from independent sanitize
+ * operations can never collide: mappings now live in one browser-wide
+ * store, and without the tag a restore could resolve [EMAIL_1] from a
+ * different tab/conversation to the wrong person's PII (or to a value
+ * poisoned by a hostile page firing synthetic copy events).
  */
 export function tokenize(text: string, detections: Detection[]): string {
   if (detections.length === 0) return text;
 
   const mappings: TokenMapping[] = [];
   const typeCounts: Record<string, number> = {};
+  // Uppercase-only alphabet: no L1 pattern can match it (UTORid needs
+  // lowercase letters+digits, the rest need digits/@/URLs), so re-scanning
+  // already-sanitized text never re-detects a tag as PII.
+  const TAG_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const batchTag = Array.from(
+    { length: 4 },
+    () => TAG_ALPHABET[Math.floor(Math.random() * TAG_ALPHABET.length)]
+  ).join('');
 
   // Sort by position (end to start) so replacements don't shift indices
   const sorted = [...detections].sort((a, b) => b.start - a.start);
@@ -41,7 +60,7 @@ export function tokenize(text: string, detections: Detection[]): string {
   for (const detection of sorted) {
     const label = TYPE_LABELS[detection.type] || detection.type.toUpperCase();
     typeCounts[label] = (typeCounts[label] || 0) + 1;
-    const placeholder = `[${label}_${typeCounts[label]}]`;
+    const placeholder = `[${label}_${typeCounts[label]}~${batchTag}]`;
 
     mappings.push({
       placeholder,
@@ -52,29 +71,21 @@ export function tokenize(text: string, detections: Detection[]): string {
     result = result.slice(0, detection.start) + placeholder + result.slice(detection.end);
   }
 
-  // Store mappings in sessionStorage for de-sanitization
-  try {
-    const existing = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...existing, ...mappings]));
-  } catch {
-    // sessionStorage unavailable (e.g., in service worker) — store in memory
-    console.warn('sessionStorage unavailable — token mappings will not persist');
-  }
+  const write = persistMappings(mappings);
+  pendingWrites.push(write);
+  // Cap the pending list so long-lived contexts don't grow it unbounded.
+  if (pendingWrites.length > 32) pendingWrites = pendingWrites.slice(-32);
 
   return result;
 }
 
 /**
  * Restore original values from placeholders in AI response text.
- * Reads mappings from sessionStorage.
+ * Reads mappings from chrome.storage.session (all contexts, newest first).
  */
-export function detokenize(text: string): { result: string; restored: number } {
-  let mappings: TokenMapping[] = [];
-  try {
-    mappings = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
-    return { result: text, restored: 0 };
-  }
+export async function detokenize(text: string): Promise<{ result: string; restored: number }> {
+  await Promise.allSettled(pendingWrites);
+  const mappings = await loadAllMappings();
 
   if (mappings.length === 0) return { result: text, restored: 0 };
 
@@ -92,20 +103,14 @@ export function detokenize(text: string): { result: string; restored: number } {
 }
 
 /** Clear all stored token mappings */
-export function clearMappings(): void {
-  try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+export async function clearMappings(): Promise<void> {
+  await Promise.allSettled(pendingWrites);
+  pendingWrites = [];
+  await clearAllMappings();
 }
 
 /** Get current mapping count */
-export function getMappingCount(): number {
-  try {
-    const mappings = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
-    return mappings.length;
-  } catch {
-    return 0;
-  }
+export async function getMappingCount(): Promise<number> {
+  await Promise.allSettled(pendingWrites);
+  return countMappings();
 }

@@ -33,6 +33,9 @@ function copyStatic() {
     ['src/onboarding/onboarding.html', 'dist/onboarding/onboarding.html'],
     ['src/onboarding/onboarding.css', 'dist/onboarding/onboarding.css'],
     ['manifest.json', 'dist/manifest.json'],
+    ['icons/icon-16.png', 'dist/icons/icon-16.png'],
+    ['icons/icon-48.png', 'dist/icons/icon-48.png'],
+    ['icons/icon-128.png', 'dist/icons/icon-128.png'],
   ];
 
   for (const [src, dest] of copies) {
@@ -40,10 +43,6 @@ function copyStatic() {
     if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
     copyFileSync(src, dest);
   }
-
-  // Create icons directory with placeholder
-  const iconsDir = 'dist/icons';
-  if (!existsSync(iconsDir)) mkdirSync(iconsDir, { recursive: true });
 }
 
 async function run() {

@@ -1,6 +1,6 @@
 # Privacy Policy — U of T Prompt Sanitizer
 
-**Last updated:** 2026-06-23
+**Last updated:** 2026-07-05
 
 ## Overview
 
@@ -28,10 +28,12 @@ Layer 2 ("Deep Scan") is **off by default**. When you enable it in Settings, tex
 - Carries only the text you are scanning — no identifiers, browsing history, or account data
 
 ### Reversible tokenization
-Token mappings (the link between placeholders like [PERSON_1] and original values) are stored in your browser's sessionStorage. This data:
-- Never leaves your device
-- Is automatically cleared when you close the browser tab
+Token mappings (the link between placeholders like [PERSON_1~XKQR] and original values) are stored in `chrome.storage.session` — the extension's in-memory session storage. This data:
+- Never leaves your device and is never written to disk
+- Is automatically cleared when you close the browser (and when the extension is updated, reloaded, or disabled — Restore does not survive an extension update)
 - Is not accessible to websites or other extensions
+- Is shared only between the extension's own components, so you can sanitize in one tab and restore from the popup later in the same browser session
+- Is capped at the most recent sanitize operations; the oldest mappings are discarded first if the cap is reached
 
 ## Permissions
 
@@ -39,7 +41,7 @@ The extension requests these browser permissions:
 
 | Permission | Why |
 |-----------|-----|
-| `storage` | Save your mode preference (A/B/C) and settings locally |
+| `storage` | Save your mode preference (A/B/C) and settings locally, and hold token mappings in the extension's in-memory session storage (`chrome.storage.session`) until the browser closes |
 | `clipboardRead` | Read clipboard contents for the Ctrl+Shift+S sanitize shortcut |
 | `clipboardWrite` | Write sanitized text to your clipboard after scanning |
 | `notifications` | Show system notifications when PII is detected (if available) |
@@ -59,8 +61,8 @@ The extension requests these browser permissions:
 │  Text → L1 Regex Scan → Results          │
 │           (no network)                   │
 │                                          │
-│  Token mappings → sessionStorage         │
-│           (cleared on tab close)         │
+│  Token mappings → chrome.storage.session │
+│      (in-memory, cleared on browser close)│
 │                                          │
 │  Settings → chrome.storage.local         │
 │           (never synced, never uploaded)  │

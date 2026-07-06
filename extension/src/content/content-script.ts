@@ -27,6 +27,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.mode) modeCache = changes.mode.newValue || 'A';
 });
 
+/** False once the extension is updated/reloaded and this script is orphaned. */
+function extensionAlive(): boolean {
+  try {
+    return !!chrome.runtime?.id;
+  } catch {
+    return false;
+  }
+}
+
 // Mode A paste-intercept.
 //
 // Detection (L1) and the replacement run SYNCHRONOUSLY inside the paste event: the native
@@ -39,6 +48,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // editor asynchronously is unreliable and risks corrupting the de-tokenization map. L2 runs in
 // the async-safe flows instead — the popup scanner and the Ctrl+Shift+S shortcut.
 document.addEventListener('paste', (e: ClipboardEvent) => {
+  // Page-synthesized paste events could poison the browser-wide mapping store
+  // with attacker-chosen clipboardData — only act on real user gestures.
+  if (!e.isTrusted) return;
   if (modeCache !== 'A') return; // Mode A off → native paste untouched
 
   const text = e.clipboardData?.getData('text/plain');
@@ -51,6 +63,10 @@ document.addEventListener('paste', (e: ClipboardEvent) => {
 
   const detections = scanL1(text);
   if (detections.length === 0) return; // clean text → native paste untouched
+
+  // Orphaned script (extension updated while this tab stayed open): mappings could
+  // never be persisted, so don't mint unrestorable placeholders — native paste through.
+  if (!extensionAlive()) return;
 
   // PII found — snapshot the field, cancel the native paste, and insert the sanitized text.
   const snap: FieldSnapshot | null = field
