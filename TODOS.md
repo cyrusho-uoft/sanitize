@@ -18,8 +18,8 @@
 
 ## TODO: Update design doc with eng review decisions
 **Priority:** Medium
-**What:** Update the design doc at `~/.gstack/projects/gstack/cyrus-unknown-design-20260324-164344.md` to reflect architectural decisions made during eng review.
-**Why:** The design doc is the source of truth for downstream skills (/plan-design-review, /ship). It currently reflects the pre-review architecture.
+**What:** Update the project design doc to reflect architectural decisions made during eng review. (The original design doc lived in external tooling that is no longer present — recreate it in-repo, e.g. `DESIGN.md`.)
+**Why:** The design doc is the source of truth for the architecture. It currently reflects the pre-review architecture.
 **Changes needed:**
 - Sequential pipeline → parallel detection with priority-based merge
 - "FastAPI or Flask" → Presidio native API + FastAPI gateway sidecar
