@@ -75,7 +75,7 @@ document.addEventListener('paste', (e: ClipboardEvent) => {
     : null;
   e.preventDefault();
 
-  const sanitized = tokenize(text, detections);
+  const sanitized = tokenize(text, detections, { source: 'paste', site: location.hostname });
   if (field && snap) {
     field.value = snap.value.slice(0, snap.start) + sanitized + snap.value.slice(snap.end);
     field.selectionStart = field.selectionEnd = snap.start + sanitized.length;
@@ -98,6 +98,6 @@ function showToast(detections: Detection[]) {
     // Only promise what the product can do: the popup opens from the toolbar
     // icon, and the Restore tab is where placeholders become real values again.
     footer:
-      'Placeholders were inserted — paste the AI’s reply into the extension’s Restore tab to bring real values back.',
+      'Placeholders were inserted — paste the AI’s reply into step 3 (Restore) in the extension popup to bring real values back.',
   });
 }

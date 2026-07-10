@@ -1,20 +1,5 @@
+/* Color tokens live in ../shared/tokens.css (linked before this file). */
 :root {
-  --uoft-blue: #002A5C;
-  --uoft-blue-light: #003D7A;
-  --severity-high: #DC3545;
-  --severity-high-bg: #F8D7DA;
-  --severity-medium: #856404;
-  --severity-medium-bg: #FFF3CD;
-  --severity-low: #0C5460;
-  --severity-low-bg: #D1ECF1;
-  --success: #1E7E34; /* darkened for WCAG AA on light surfaces */
-  --success-bg: #E8F5E9;
-  --surface: #FFFFFF;
-  --surface-secondary: #F8F9FA;
-  --text-primary: #1A1A2E;
-  --text-secondary: #666666;
-  --border: #E0E0E0;
-
   --font-primary: system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, monospace;
 
@@ -104,32 +89,61 @@ body {
   background: var(--uoft-blue-light);
 }
 
-/* Tabs */
-.tabs {
+/* Flow stepper (Protect → Ask the AI → Restore) */
+.flow {
   display: flex;
   border-bottom: 1px solid var(--border);
+  background: var(--surface-secondary);
 }
 
-.tab {
+.flow-step {
   flex: 1;
-  padding: var(--space-sm) var(--space-lg);
+  padding: var(--space-sm) var(--space-sm);
   border: none;
-  background: var(--surface-secondary);
+  background: none;
   font-family: var(--font-primary);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-secondary);
-  cursor: pointer;
   border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-.tab.active {
+button.flow-step { cursor: pointer; }
+
+.flow-n {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  flex: none;
+}
+
+.flow-step.active {
   background: var(--surface);
-  color: var(--uoft-blue);
-  border-bottom-color: var(--uoft-blue);
+  color: var(--uoft-accent);
+  border-bottom-color: var(--uoft-accent);
 }
 
-.tab:hover:not(.active) {
+/* Step 1 after a successful copy */
+.flow-step.done {
+  color: var(--success);
+}
+
+/* Step 2 lights up once the safe copy is on the clipboard */
+.flow-marker.on {
+  color: var(--uoft-accent);
+  border-bottom-color: var(--uoft-accent);
+}
+
+button.flow-step:hover:not(.active) {
   background: var(--surface);
 }
 
@@ -160,9 +174,9 @@ textarea {
 }
 
 textarea:focus {
-  outline: 2px solid var(--uoft-blue);
+  outline: 2px solid var(--uoft-accent);
   outline-offset: -2px;
-  border-color: var(--uoft-blue);
+  border-color: var(--uoft-accent);
 }
 
 /* Status bar */
@@ -263,12 +277,33 @@ textarea:focus {
   text-transform: none;
 }
 
-.detection-value {
+/* Value → token transform preview */
+.detection-diff {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+.diff-old {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--severity-high);
+  text-decoration-thickness: 1.5px;
+  word-break: break-all;
+}
+
+.diff-arrow { color: var(--text-secondary); }
+
+.diff-token {
   background: var(--surface-secondary);
-  padding: 2px 6px;
-  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--uoft-accent);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
 .detection-explain {
@@ -280,8 +315,14 @@ textarea:focus {
   color: var(--text-secondary);
 }
 
-.detection-explain strong {
+.detection-explain summary {
+  cursor: pointer;
+  font-weight: 600;
   color: var(--text-primary);
+}
+
+.detection-explain p {
+  margin-top: 4px;
 }
 
 .detection-dismiss {
@@ -384,8 +425,58 @@ textarea:focus {
   font-weight: 600;
 }
 
-/* Copied flash */
+/* Copied flash — paired tokens keep AA contrast in both themes */
 .btn-primary.copied {
-  background: var(--success);
+  background: var(--success-bg);
+  color: var(--success);
   transition: background 0.2s;
+}
+
+/* Session activity */
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid var(--border);
+  background: var(--surface-secondary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.session-toggle {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.session-toggle:hover { background: var(--surface-secondary); }
+
+.activity-panel {
+  border-top: 1px solid var(--border);
+  padding: var(--space-sm) var(--space-lg) var(--space-md);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.activity-list {
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  display: grid;
+  gap: 4px;
+}
+
+.activity-note {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
 }

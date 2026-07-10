@@ -5,6 +5,9 @@ import {
   clearAllMappings,
   countMappings,
   writeBatchDirect,
+  loadBatchSummaries,
+  recordRestoreEvent,
+  getRestoreEventCount,
   MAPPING_KEY_PREFIX,
   PERSIST_MESSAGE_TYPE,
   MAX_BATCHES,
@@ -105,6 +108,39 @@ describe('mapping-store', () => {
       await persistMappings([mapping('[EMAIL_1]', 'a@b.com'), mapping('[EMAIL_2]', 'c@d.com')]);
       await persistMappings([mapping('[PHONE_1]', '416-555-0199')]);
       expect(await countMappings()).toBe(3);
+    });
+
+    it('stores batch provenance and reports it in summaries (never values)', async () => {
+      const now = vi.spyOn(Date, 'now');
+      now.mockReturnValue(1000);
+      await persistMappings([mapping('[EMAIL_1]', 'a@b.com')], { source: 'paste', site: 'chatgpt.com' });
+      now.mockReturnValue(2000);
+      await persistMappings(
+        [mapping('[PHONE_1]', '416-555-0199'), mapping('[EMAIL_1~ZZZZ]', 'c@d.com')],
+        { source: 'popup' }
+      );
+
+      const summaries = await loadBatchSummaries();
+      expect(summaries).toHaveLength(2);
+      // newest first
+      expect(summaries[0]).toMatchObject({ source: 'popup', count: 2 });
+      expect(summaries[0].site).toBeUndefined();
+      expect(summaries[1]).toMatchObject({ source: 'paste', site: 'chatgpt.com', count: 1 });
+      // values never leak into summaries
+      expect(JSON.stringify(summaries)).not.toContain('a@b.com');
+    });
+
+    it('summaries mark legacy batches without a source as unknown', async () => {
+      await writeBatchDirect({ createdAt: 500, seq: 1, mappings: [mapping('[EMAIL_1]', 'a@b.com')] });
+      const summaries = await loadBatchSummaries();
+      expect(summaries[0].source).toBe('unknown');
+    });
+
+    it('tracks restore events for the session', async () => {
+      expect(await getRestoreEventCount()).toBe(0);
+      await recordRestoreEvent();
+      await recordRestoreEvent();
+      expect(await getRestoreEventCount()).toBe(2);
     });
 
     it('skips malformed batches in storage', async () => {

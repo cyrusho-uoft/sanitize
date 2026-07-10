@@ -27,11 +27,30 @@ export interface TokenMapping {
   type: string;
 }
 
+/** Where a sanitize event came from — drives the popup's session activity view. */
+export type BatchSource = 'paste' | 'copy' | 'shortcut' | 'popup';
+
+export interface BatchMeta {
+  source?: BatchSource;
+  /** Hostname only (never full URLs) — kept in-memory for the session, like the mappings. */
+  site?: string;
+}
+
 export interface MappingBatch {
   createdAt: number;
   /** Monotonic per-context counter — tie-breaks batches created in the same ms. */
   seq: number;
   mappings: TokenMapping[];
+  source?: BatchSource;
+  site?: string;
+}
+
+/** One row of the popup's session activity view. */
+export interface BatchSummary {
+  createdAt: number;
+  source: BatchSource | 'unknown';
+  site?: string;
+  count: number;
 }
 
 let batchSeq = 0;
@@ -126,9 +145,15 @@ export async function writeBatchDirect(batch: MappingBatch): Promise<void> {
  * Never rejects — on failure the batch is kept in the in-context memory
  * fallback so same-context detokenize still works.
  */
-export async function persistMappings(mappings: TokenMapping[]): Promise<void> {
+export async function persistMappings(mappings: TokenMapping[], meta?: BatchMeta): Promise<void> {
   if (mappings.length === 0) return;
-  const batch: MappingBatch = { createdAt: Date.now(), seq: ++batchSeq, mappings };
+  const batch: MappingBatch = {
+    createdAt: Date.now(),
+    seq: ++batchSeq,
+    mappings,
+    ...(meta?.source ? { source: meta.source } : {}),
+    ...(meta?.site ? { site: meta.site } : {}),
+  };
 
   try {
     if (isTrustedContext() && hasSessionStorageArea()) {
@@ -193,4 +218,61 @@ export async function clearAllMappings(): Promise<void> {
 export async function countMappings(): Promise<number> {
   const mappings = await loadAllMappings();
   return mappings.length;
+}
+
+/**
+ * Summaries of every stored batch, newest first — the popup's session
+ * activity view. Values are never included, only counts and provenance.
+ */
+export async function loadBatchSummaries(): Promise<BatchSummary[]> {
+  const batches: MappingBatch[] = [...memoryBatches];
+
+  if (hasSessionStorageArea()) {
+    try {
+      const all = await chrome.storage.session.get();
+      for (const [key, value] of Object.entries(all)) {
+        if (!key.startsWith(MAPPING_KEY_PREFIX)) continue;
+        const batch = value as MappingBatch;
+        if (Array.isArray(batch?.mappings)) batches.push(batch);
+      }
+    } catch {
+      // storage unreachable — memory fallback only
+    }
+  }
+
+  batches.sort(
+    (a, b) => ((b.createdAt || 0) - (a.createdAt || 0)) || ((b.seq || 0) - (a.seq || 0))
+  );
+  return batches.map(b => ({
+    createdAt: b.createdAt || 0,
+    source: b.source ?? 'unknown',
+    ...(b.site ? { site: b.site } : {}),
+    count: b.mappings.length,
+  }));
+}
+
+const RESTORE_COUNT_KEY = 'psmeta_restore_events';
+
+/** Record one successful restore action (session-scoped, best effort). */
+export async function recordRestoreEvent(): Promise<void> {
+  if (!hasSessionStorageArea()) return;
+  try {
+    const cur = (await chrome.storage.session.get(RESTORE_COUNT_KEY))[RESTORE_COUNT_KEY];
+    await chrome.storage.session.set({
+      [RESTORE_COUNT_KEY]: (typeof cur === 'number' ? cur : 0) + 1,
+    });
+  } catch {
+    // ignore — the counter is cosmetic
+  }
+}
+
+/** Number of successful restore actions this browser session. */
+export async function getRestoreEventCount(): Promise<number> {
+  if (!hasSessionStorageArea()) return 0;
+  try {
+    const cur = (await chrome.storage.session.get(RESTORE_COUNT_KEY))[RESTORE_COUNT_KEY];
+    return typeof cur === 'number' ? cur : 0;
+  } catch {
+    return 0;
+  }
 }

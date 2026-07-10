@@ -31,6 +31,7 @@ function copyStatic() {
     ['src/offscreen/offscreen.html', 'dist/offscreen/offscreen.html'],
     ['src/onboarding/onboarding.html', 'dist/onboarding/onboarding.html'],
     ['src/onboarding/onboarding.css', 'dist/onboarding/onboarding.css'],
+    ['src/shared/tokens.css', 'dist/shared/tokens.css'],
     ['manifest.json', 'dist/manifest.json'],
     ['icons/icon-16.png', 'dist/icons/icon-16.png'],
     ['icons/icon-48.png', 'dist/icons/icon-48.png'],

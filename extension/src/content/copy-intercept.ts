@@ -56,7 +56,7 @@ document.addEventListener('copy', (e: ClipboardEvent) => {
   e.preventDefault();
   e.stopImmediatePropagation();
   e.stopPropagation();
-  const sanitized = tokenize(selection, detections);
+  const sanitized = tokenize(selection, detections, { source: 'copy', site: location.hostname });
   e.clipboardData?.setData('text/plain', sanitized);
 
   // Notify via the extension badge (count shown on the toolbar icon)

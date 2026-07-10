@@ -68,7 +68,14 @@ chrome.commands.onCommand.addListener(async (command) => {
       : l1;
     // Clean or sanitized, the shortcut's contract is "the selection is now
     // on your clipboard" \u2014 verified via the success flag returned below.
-    const sanitized = detections.length === 0 ? text : tokenize(text, detections);
+    let site: string | undefined;
+    try {
+      site = tab.url ? new URL(tab.url).hostname : undefined;
+    } catch {
+      site = undefined;
+    }
+    const sanitized =
+      detections.length === 0 ? text : tokenize(text, detections, { source: 'shortcut', site });
 
     // Write to the clipboard via the active tab. Chrome does not propagate
     // injected-function errors (crbug.com/1271527), so the injected function
@@ -113,7 +120,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       headline: `Protected ${detections.length} item${detections.length > 1 ? 's' : ''} — copied`,
       items: detections.map(d => ({ label: detectionLabel(d), severity: d.severity })),
       footer:
-        'Ctrl+V to paste the safe copy. Paste the AI’s reply into the extension’s Restore tab to bring real values back.',
+        'Ctrl+V to paste the safe copy. Paste the AI’s reply into step 3 (Restore) in the extension popup to bring real values back.',
     }).catch(() => {});
   } catch (err) {
     console.error('Sanitize selection failed:', err);
