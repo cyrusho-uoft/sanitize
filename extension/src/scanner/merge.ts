@@ -25,19 +25,33 @@ function pickWinner(a: Detection, b: Detection): Detection {
 /**
  * Merge detections from multiple sources (L1 + L2).
  * When spans overlap, the higher-priority detection wins.
+ *
+ * Linear-time discipline: `all` is sorted by start, so once an entry in
+ * `merged` ends at or before the current detection's start it can never
+ * overlap this or any later detection — the frontier index skips those
+ * permanently. A findIndex from 0 here made scanL1 O(detections²): a 640KB
+ * repetitive paste (~40k detections) froze the tab for 2.4s.
  */
 export function mergeDetections(...sources: Detection[][]): Detection[] {
   const all = sources.flat().sort((a, b) => a.start - b.start);
   const merged: Detection[] = [];
+  let frontier = 0;
 
   for (const detection of all) {
-    const overlapIdx = merged.findIndex(existing => overlaps(existing, detection));
+    while (frontier < merged.length && merged[frontier].end <= detection.start) frontier++;
+
+    let overlapIdx = -1;
+    for (let i = frontier; i < merged.length; i++) {
+      if (overlaps(merged[i], detection)) {
+        overlapIdx = i;
+        break;
+      }
+    }
 
     if (overlapIdx === -1) {
       merged.push(detection);
     } else {
-      const winner = pickWinner(merged[overlapIdx], detection);
-      merged[overlapIdx] = winner;
+      merged[overlapIdx] = pickWinner(merged[overlapIdx], detection);
     }
   }
 
