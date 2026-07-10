@@ -66,17 +66,34 @@ document.getElementById('backend-url')?.addEventListener('change', async (e) => 
       return;
     }
   } catch {
-    // permissions API unavailable (e.g. already a static host permission) — proceed
+    // A rejected request (e.g. no recognized user gesture in the embedded
+    // options frame) must not silently save a permission-less URL — Deep Scan
+    // would then fail open to zero detections. Only proceed when the origin
+    // is already granted (e.g. it's a static host permission).
+    const already = await chrome.permissions
+      .contains({ origins: [originPattern] })
+      .catch(() => false);
+    if (!already) {
+      input.value = lastSavedBackendUrl;
+      showStatus('Permission not granted — not saved');
+      return;
+    }
   }
 
   lastSavedBackendUrl = url;
   save({ backendUrl: url });
 });
 
-// Back button
-document.getElementById('btn-back')?.addEventListener('click', () => {
-  window.location.href = '../popup/popup.html';
-});
+// Back button — only for the popup entry point. This page is also embedded
+// by chrome://extensions (options_ui), where "back to scanner" would trap the
+// popup UI inside the options dialog.
+const backBtn = document.getElementById('btn-back') as HTMLButtonElement | null;
+if (backBtn && new URLSearchParams(location.search).get('from') === 'popup') {
+  backBtn.hidden = false;
+  backBtn.addEventListener('click', () => {
+    window.location.href = '../popup/popup.html';
+  });
+}
 
 function save(data: Record<string, unknown>) {
   chrome.storage.local.set(data, () => showStatus('Settings saved'));

@@ -8,6 +8,7 @@
 
 import { scanL1, Detection } from '../scanner';
 import { tokenize } from '../tokenizer';
+import { renderSanitizerToast } from '../ui/toast';
 import explanations from '../knowledge/explanations.json';
 
 interface FieldSnapshot {
@@ -86,64 +87,17 @@ document.addEventListener('paste', (e: ClipboardEvent) => {
   showToast(detections);
 }, true);
 
-/** Escape text before interpolating into innerHTML — page-controlled values are untrusted. */
-function escapeHtml(s: string): string {
-  const div = document.createElement('div');
-  div.textContent = s;
-  return div.innerHTML;
-}
-
 function showToast(detections: Detection[]) {
-  // Remove existing toast if any
-  document.querySelector('.prompt-sanitizer-toast')?.remove();
-
-  const highCount = detections.filter(d => d.severity === 'high').length;
-  const mediumCount = detections.filter(d => d.severity === 'medium').length;
-
-  const toast = document.createElement('div');
-  toast.className = 'prompt-sanitizer-toast';
-  toast.setAttribute('role', 'alert');
-  toast.setAttribute('aria-live', 'polite');
-
-  let detailsHtml = '';
-  // Show first 2 detections inline
-  const preview = detections.slice(0, 2);
-  for (const d of preview) {
-    const exp = (explanations as Record<string, { title: string }>)[d.explanationKey];
-    const label = exp?.title || d.type;
-    detailsHtml += `
-      <div class="prompt-sanitizer-toast-detail-item">
-        <span class="prompt-sanitizer-toast-dot ${d.severity}"></span>
-        ${escapeHtml(label)}: <code>${escapeHtml(d.value.length > 20 ? d.value.slice(0, 17) + '...' : d.value)}</code>
-      </div>
-    `;
-  }
-  if (detections.length > 2) {
-    detailsHtml += `<div class="prompt-sanitizer-toast-detail-item">+${detections.length - 2} more</div>`;
-  }
-
-  toast.innerHTML = `
-    <div class="prompt-sanitizer-toast-header">
-      <span class="prompt-sanitizer-toast-shield">&#x1f6e1;</span>
-      ${detections.length} item${detections.length > 1 ? 's' : ''} sanitized
-    </div>
-    <div class="prompt-sanitizer-toast-details">
-      ${detailsHtml}
-    </div>
-    <div class="prompt-sanitizer-toast-action">Click to review in extension popup</div>
-  `;
-
-  toast.addEventListener('click', () => {
-    // Open the extension popup (best effort — may not work in all browsers)
-    chrome.runtime.sendMessage({ type: 'open-popup' });
-    toast.remove();
+  renderSanitizerToast({
+    headline: `Protected ${detections.length} item${detections.length > 1 ? 's' : ''} in your paste`,
+    items: detections.map(d => ({
+      label:
+        (explanations as Record<string, { title: string }>)[d.explanationKey]?.title || d.type,
+      severity: d.severity,
+    })),
+    // Only promise what the product can do: the popup opens from the toolbar
+    // icon, and the Restore tab is where placeholders become real values again.
+    footer:
+      'Placeholders were inserted — paste the AI’s reply into the extension’s Restore tab to bring real values back.',
   });
-
-  document.body.appendChild(toast);
-
-  // Auto-dismiss after 8 seconds
-  setTimeout(() => {
-    toast.classList.add('fading');
-    setTimeout(() => toast.remove(), 300);
-  }, 8000);
 }

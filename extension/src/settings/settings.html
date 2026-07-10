@@ -8,58 +8,59 @@
 <body>
   <div class="settings">
     <header class="header">
-      <button class="back-btn" id="btn-back" aria-label="Back to scanner">&larr;</button>
+      <button class="back-btn" id="btn-back" aria-label="Back to scanner" hidden>&larr;</button>
       <h1>Settings</h1>
     </header>
 
     <section class="section">
-      <h2>Protection Mode</h2>
-      <div class="mode-options">
+      <fieldset class="mode-options">
+        <legend><h2>Protection Mode</h2></legend>
         <label class="mode-option" data-mode="A">
           <input type="radio" name="mode" value="A">
           <div class="mode-content">
-            <strong>Smart Paste Protection</strong>
+            <strong>AI-site guard</strong>
             <span class="mode-badge">Recommended</span>
-            <p>Auto-sanitizes when you paste on AI sites (ChatGPT, Claude, Gemini).</p>
+            <p>Cleans what you paste on ChatGPT, Claude, and Gemini. Other sites are untouched.</p>
           </div>
         </label>
         <label class="mode-option" data-mode="B">
           <input type="radio" name="mode" value="B">
           <div class="mode-content">
-            <strong>Always Protected</strong>
-            <p>Scans every copy on every site. Most protective.</p>
+            <strong>Copy guard — everywhere</strong>
+            <p>Cleans anything you copy, on every site (a count appears on the extension icon). Note: this turns off the paste guard on AI sites.</p>
           </div>
         </label>
         <label class="mode-option" data-mode="C">
           <input type="radio" name="mode" value="C">
           <div class="mode-content">
-            <strong>Manual</strong>
-            <p>Select text + Ctrl+Shift+S, or use the popup.</p>
+            <strong>On-demand (Ctrl+Shift+S · Cmd+Shift+S on Mac)</strong>
+            <p>Nothing happens automatically. Select text and press Ctrl+Shift+S, or use the popup.</p>
           </div>
         </label>
-      </div>
+      </fieldset>
+      <p class="hint">The Ctrl+Shift+S shortcut and the popup work in every mode.</p>
     </section>
 
     <section class="section">
       <h2>Deep Scan</h2>
       <label class="toggle-row">
-        <span>Enable Deep Scan by default</span>
+        <span>Enable Deep Scan</span>
         <input type="checkbox" id="deep-scan-toggle">
-        <span class="toggle-switch"></span>
+        <span class="toggle-switch" aria-hidden="true"></span>
       </label>
-      <p class="hint">When enabled, the popup scanner and the Ctrl+Shift+S shortcut also send text to U of T's on-prem Presidio server for name, location, organization, and grant-number detection (Layer 2). Layer 1 always runs locally; Layer 2 only runs while this is on. Paste-interception (Mode A) stays Layer 1 only for reliability.</p>
-      <label class="toggle-row">
-        <span>Backend URL</span>
-        <input type="url" id="backend-url" placeholder="http://localhost:8000" spellcheck="false" autocomplete="off" style="flex:1;min-width:0;margin-left:12px;">
-      </label>
-      <p class="hint">Address of the Layer 2 gateway. Default: http://localhost:8000. A non-localhost address will prompt for permission to reach it.</p>
+      <p class="hint">Also catches names, places, organizations, and research grant numbers. To do this, the text you scan is sent to the server below — nothing is stored there. With Deep Scan off, nothing ever leaves this device. Deep Scan runs in the popup and with Ctrl+Shift+S (not on paste).</p>
+      <div class="field-row">
+        <label for="backend-url">Server address</label>
+        <input type="url" id="backend-url" placeholder="http://localhost:8000" spellcheck="false" autocomplete="off">
+      </div>
+      <p class="hint">Ask your department for the campus address. A non-localhost address will ask for permission first.</p>
     </section>
 
     <section class="section about">
       <h2>About</h2>
       <p><strong>U of T Prompt Sanitizer</strong> v0.1.0</p>
       <p>Built for the University of Toronto community.</p>
-      <p>All Layer 1 detection runs locally in your browser. No data leaves your device.</p>
+      <p>Pattern detection runs entirely in your browser. With Deep Scan off, no data ever leaves your device.</p>
     </section>
 
     <div class="saved-indicator" id="saved-indicator" hidden>Settings saved</div>

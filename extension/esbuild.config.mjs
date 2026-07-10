@@ -26,7 +26,6 @@ function copyStatic() {
   const copies = [
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/popup/popup.css', 'dist/popup/popup.css'],
-    ['src/content/toast.css', 'dist/content/toast.css'],
     ['src/settings/settings.html', 'dist/settings/settings.html'],
     ['src/settings/settings.css', 'dist/settings/settings.css'],
     ['src/offscreen/offscreen.html', 'dist/offscreen/offscreen.html'],

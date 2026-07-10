@@ -42,15 +42,15 @@ The extension requests these browser permissions:
 | Permission | Why |
 |-----------|-----|
 | `storage` | Save your mode preference (A/B/C) and settings locally, and hold token mappings in the extension's in-memory session storage (`chrome.storage.session`) until the browser closes |
-| `clipboardRead` | Read clipboard contents for the Ctrl+Shift+S sanitize shortcut |
+| `clipboardRead` | Declared for a planned clipboard fallback; the Ctrl+Shift+S shortcut currently reads your selected text, not the clipboard |
 | `clipboardWrite` | Write sanitized text to your clipboard after scanning |
-| `notifications` | Show system notifications when PII is detected (if available) |
+| `notifications` | Declared for planned system notifications; feedback currently uses on-page banners and the toolbar badge |
 | `scripting` | Inject toast notifications and read selected text on web pages |
 | `activeTab` | Access the currently active tab for the keyboard shortcut |
 | `offscreen` | Create a temporary background page for clipboard operations |
 | Host permissions (AI sites) | Run paste-interception on ChatGPT, Claude, and Gemini |
 | Host permissions (L2 backend) | Send text to the Deep Scan gateway (default `http://localhost:8000`) — only used while Deep Scan is enabled. A non-localhost gateway is requested at runtime (you'll be prompted) and not granted until you approve it. |
-| `<all_urls>` | Run copy-interception when Mode B (Always Protected) is enabled |
+| `<all_urls>` | Run copy-interception when Mode B (Copy guard — everywhere) is enabled |
 
 ## Data flow diagram
 

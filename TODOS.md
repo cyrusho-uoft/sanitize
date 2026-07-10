@@ -1,5 +1,17 @@
 # TODOS
 
+## TODO: Design-audit follow-ups (core + bets)
+**Priority:** Medium-High (UX)
+**What:** Remaining items from the 2026-07 UX audit (63 verified findings; quick wins shipped separately):
+- Flow-aware popup: Protect → Ask AI → Restore stepper, post-copy next-step state
+- Session activity view (list Mode A/B/C sanitize events; tag mapping batches with a source field)
+- Mode B: in-page toast with Undo + re-intercept snooze, per-site exceptions, real chrome.notifications (permission is declared but unused)
+- Dark theme across popup/settings/onboarding via shared tokens.css
+- Mode A undo/bypass for false positives; sanitized-text preview pane
+- Onboarding v2: live sandbox instead of slides
+**Why:** Audit confirmed the round-trip is undiscoverable and automatic modes are invisible; these close the loop.
+**Added:** 2026-07-08 via design review (see review artifact)
+
 ## TODO: Regex timeout wrapper for L1 pattern matching
 **Priority:** High (security)
 **What:** Add a timeout wrapper around each L1 regex pattern execution to prevent catastrophic backtracking from freezing the browser tab.

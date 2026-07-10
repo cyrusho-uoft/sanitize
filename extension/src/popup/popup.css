@@ -7,7 +7,7 @@
   --severity-medium-bg: #FFF3CD;
   --severity-low: #0C5460;
   --severity-low-bg: #D1ECF1;
-  --success: #28A745;
+  --success: #1E7E34; /* darkened for WCAG AA on light surfaces */
   --success-bg: #E8F5E9;
   --surface: #FFFFFF;
   --surface-secondary: #F8F9FA;
@@ -29,6 +29,12 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Author display values (flex) on .status-bar/.actions would otherwise beat
+   the UA's [hidden] { display: none } — keep the hidden attribute authoritative. */
+[hidden] {
+  display: none !important;
 }
 
 body {
@@ -59,7 +65,16 @@ body {
 }
 
 .header-shield {
-  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  flex: none;
+}
+
+.header-settings svg {
+  width: 17px;
+  height: 17px;
+  display: block;
 }
 
 .header-title {
@@ -134,7 +149,7 @@ body {
 
 textarea {
   width: 100%;
-  border: 1.5px dashed var(--border);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: var(--space-sm) var(--space-md);
   font-family: var(--font-primary);
@@ -204,11 +219,16 @@ textarea:focus {
 }
 
 .detection-card {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: var(--space-sm) var(--space-md);
   margin-top: var(--space-sm);
   animation: slideIn 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detection-card { animation: none; }
 }
 
 @keyframes slideIn {
@@ -217,6 +237,7 @@ textarea:focus {
 }
 
 .detection-label {
+  padding-right: 44px; /* keep clear of the Keep button */
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -232,12 +253,14 @@ textarea:focus {
 .detection-label.low { color: var(--severity-low); }
 
 .layer-badge {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 3px;
-  background: var(--success-bg);
-  color: var(--success);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  text-transform: none;
 }
 
 .detection-value {
@@ -251,7 +274,7 @@ textarea:focus {
 .detection-explain {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px dashed var(--border);
+  border-top: 1px solid var(--border);
   font-size: 11px;
   line-height: 1.4;
   color: var(--text-secondary);
@@ -262,23 +285,30 @@ textarea:focus {
 }
 
 .detection-dismiss {
-  float: right;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-height: 24px;
   background: none;
-  border: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
 }
 
 .detection-dismiss:hover {
   color: var(--text-primary);
+  background: var(--surface-secondary);
 }
 
-/* Severity borders for accessibility (not color alone) */
-.detection-card.high { border-left: 3px solid var(--severity-high); border-style: solid; }
-.detection-card.medium { border-left: 3px dashed var(--severity-medium); border-style: dashed; border-left-style: solid; }
-.detection-card.low { border-left: 3px dotted var(--severity-low); border-style: dotted; border-left-style: solid; }
+/* Severity rail — the severity word on the card carries the tier for
+   colorblind users; the full-card dashed/dotted borders are retired. */
+.detection-card.high { border-left: 3px solid var(--severity-high); }
+.detection-card.medium { border-left: 3px solid var(--severity-medium); }
+.detection-card.low { border-left: 3px solid var(--severity-low); }
 
 /* Actions */
 .actions {
@@ -293,7 +323,7 @@ textarea:focus {
   padding: var(--space-sm) var(--space-md);
   border-radius: 6px;
   font-family: var(--font-primary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
