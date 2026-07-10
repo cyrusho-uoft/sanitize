@@ -12,12 +12,17 @@
 **Why:** Audit confirmed the round-trip is undiscoverable and automatic modes are invisible; these close the loop.
 **Added:** 2026-07-08 via design review (see review artifact)
 
-## TODO: Regex timeout wrapper for L1 pattern matching
-**Priority:** High (security)
-**What:** Add a timeout wrapper around each L1 regex pattern execution to prevent catastrophic backtracking from freezing the browser tab.
-**Why:** A crafted input with nested repetitions can cause JavaScript regex to run indefinitely. This is a denial-of-service vulnerability in the browser's main thread.
-**How:** Use `performance.now()` time-bounded execution or run patterns in a Web Worker with a 100ms timeout per pattern. If a pattern exceeds the timeout, skip it and log the event.
-**Depends on:** L1 pattern registry implementation.
+## DONE: ReDoS hardening for L1 pattern matching (was: regex timeout wrapper)
+**Resolved:** 2026-07-10 — a same-thread timeout is impossible (JS regex execution
+is synchronous and uninterruptible) and a Web Worker breaks the paste handler's
+synchronous-preventDefault requirement. Solved at the root instead:
+- Every L1 regex now uses bounded quantifiers and unambiguous classes (linear
+  matching). The email pattern was genuinely quadratic — a 100KB crafted input
+  took 5.3s (old) vs 16ms (fixed); see `patterns/email.ts`.
+- `scanL1` logs (never silently skips) slow or throwing patterns; input is
+  never truncated — for a PII guard, scanning less fails open.
+- Adversarial regression tests in `test/scanner-redos.test.ts` pin the
+  linear-time behavior.
 **Added:** 2026-03-25 via /plan-eng-review
 
 ## TODO: Test content script rendering against AI site CSP headers
