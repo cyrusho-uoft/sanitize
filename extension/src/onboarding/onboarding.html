@@ -17,8 +17,8 @@
         emails, health cards, and more — before you paste text into ChatGPT, Claude, or Gemini.
       </p>
       <p class="step-detail">
-        Built by and for the University of Toronto community. Everything runs locally in your
-        browser — no data ever leaves your device.
+        Built by and for the University of Toronto community. Detection runs locally in your
+        browser by default — nothing is sent anywhere unless you turn on Deep Scan in Settings.
       </p>
     </div>
 
@@ -47,36 +47,44 @@
             <p>One click replaces PII with safe placeholders. The AI still understands your request.</p>
           </div>
         </div>
+        <div class="how-step">
+          <div class="how-number">4</div>
+          <div>
+            <strong>Restore the reply</strong>
+            <p>If the AI's answer contains placeholders like [PERSON_1~ABCD], paste it into the extension's Restore tab to put the real values back.</p>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Step 3: Choose your mode -->
     <div class="step" data-step="3">
       <h2 class="step-title">Choose your protection mode</h2>
-      <div class="mode-options">
+      <fieldset class="mode-options">
+        <legend class="visually-hidden">Protection mode</legend>
         <label class="mode-option selected" data-mode="A">
           <input type="radio" name="mode" value="A" checked>
           <div class="mode-content">
-            <strong>Smart Paste Protection</strong>
+            <strong>AI-site guard</strong>
             <span class="mode-badge">Recommended</span>
-            <p>Automatically scans when you paste on AI sites. Shows a notification with what was caught.</p>
+            <p>Automatically replaces sensitive info in text you paste on ChatGPT, Claude, or Gemini, and shows an on-page banner listing what was replaced.</p>
           </div>
         </label>
         <label class="mode-option" data-mode="B">
           <input type="radio" name="mode" value="B">
           <div class="mode-content">
-            <strong>Always Protected</strong>
-            <p>Scans every copy action on every site. Most protective, but you'll see more notifications.</p>
+            <strong>Copy guard — everywhere</strong>
+            <p>Cleans anything you copy, on every site — a count appears on the extension icon when something is replaced. Turns off the paste guard on AI sites.</p>
           </div>
         </label>
         <label class="mode-option" data-mode="C">
           <input type="radio" name="mode" value="C">
           <div class="mode-content">
-            <strong>Manual</strong>
-            <p>Open the popup to scan, or press Ctrl+Shift+S. You control when it runs.</p>
+            <strong>On-demand (Ctrl+Shift+S · Cmd+Shift+S on Mac)</strong>
+            <p>Nothing happens automatically. Select text and press Ctrl+Shift+S, or open the popup to scan.</p>
           </div>
         </label>
-      </div>
+      </fieldset>
     </div>
 
     <!-- Navigation -->

@@ -57,7 +57,14 @@ body {
   margin-bottom: 10px;
 }
 
-.mode-options { display: flex; flex-direction: column; gap: 8px; }
+.mode-options { display: flex; flex-direction: column; gap: 8px; border: none; padding: 0; margin: 0; }
+
+.mode-options legend { padding: 0; margin-bottom: 10px; }
+.mode-options legend h2 { margin-bottom: 0; } /* avoid stacking with the legend margin */
+
+.field-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+.field-row label { flex: none; }
+.field-row input[type="url"] { flex: 1; min-width: 0; }
 
 .mode-option {
   display: flex;
@@ -102,7 +109,21 @@ body {
   padding: 4px 0;
 }
 
-.toggle-row input[type="checkbox"] { display: none; }
+/* Visually hidden but keyboard-focusable — display:none would remove the
+   Deep Scan consent control from the tab order and assistive tech. */
+.toggle-row { position: relative; }
+.toggle-row input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.toggle-row input[type="checkbox"]:focus-visible + .toggle-switch {
+  outline: 2px solid var(--uoft-blue);
+  outline-offset: 2px;
+}
 
 .toggle-switch {
   width: 36px;

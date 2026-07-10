@@ -2,76 +2,76 @@
   "sin": {
     "title": "Social Insurance Number",
     "why": "SINs are permanent identifiers tied to tax records, employment, and benefits. Exposure enables identity theft and fraud. Never share with AI tools.",
-    "action": "This will be replaced with [SIN_REDACTED]. The AI can still process your request without the actual number."
+    "action": "This will be replaced with [SIN_REDACTED_N~XXXX]. The AI can still process your request without the actual number."
   },
   "student_number": {
     "title": "U of T Student Number",
     "why": "Student numbers are linked to academic records in ACORN — grades, enrollment, financial aid. Combined with a name, this uniquely identifies a student.",
-    "action": "This will be replaced with [STUDENT_ID_N]. Use it as a reference when reading the AI's response."
+    "action": "This will be replaced with [STUDENT_ID_N~XXXX]. Use it as a reference when reading the AI's response."
   },
   "health_card": {
     "title": "Ontario Health Card",
     "why": "Health card numbers provide access to medical records and services. Exposure can lead to medical identity theft and insurance fraud.",
-    "action": "This will be replaced with [HEALTH_CARD_N]. Never share health card numbers with any AI tool."
+    "action": "This will be replaced with [HEALTH_CARD_N~XXXX]. Never share health card numbers with any AI tool."
   },
   "credit_card": {
     "title": "Credit Card Number",
     "why": "Credit card numbers enable unauthorized purchases. Even partial numbers combined with other information can be exploited.",
-    "action": "This will be replaced with [CREDIT_CARD_N]. If you need to discuss a transaction, use the last 4 digits only."
+    "action": "This will be replaced with [CREDIT_CARD_N~XXXX]. If you need to discuss a transaction, use the last 4 digits only."
   },
   "email": {
     "title": "Email Address",
     "why": "Email addresses can be used for phishing, spam, and social engineering. They're often linked to other accounts and services.",
-    "action": "This will be replaced with [EMAIL_N]. Consider whether the AI actually needs the email to help you."
+    "action": "This will be replaced with [EMAIL_N~XXXX]. Consider whether the AI actually needs the email to help you."
   },
   "email_uoft": {
     "title": "U of T Email Address",
     "why": "U of T email addresses contain UTORids and are directly linkable to the university directory, academic records, and internal systems.",
-    "action": "This will be replaced with [EMAIL_N]. U of T emails are especially sensitive because they connect to institutional identity."
+    "action": "This will be replaced with [EMAIL_N~XXXX]. U of T emails are especially sensitive because they connect to institutional identity."
   },
   "phone": {
     "title": "Phone Number",
     "why": "Phone numbers can be used for social engineering, SIM swapping, and unauthorized account access. They're increasingly used as identity verification.",
-    "action": "This will be replaced with [PHONE_N]. The AI doesn't need your real phone number to help you."
+    "action": "This will be replaced with [PHONE_N~XXXX]. The AI doesn't need your real phone number to help you."
   },
   "utorid": {
     "title": "UTORid",
     "why": "UTORids are U of T login credentials used for ACORN, Quercus, email, library, and all university services. Sharing them risks unauthorized access to your academic life.",
-    "action": "This will be replaced with [UTORID_N]. Never share your UTORid with external services."
+    "action": "This will be replaced with [UTORID_N~XXXX]. Never share your UTORid with external services."
   },
   "username": {
     "title": "Username / @Mention",
     "why": "Usernames and @mentions are linked to real identities on social media, Slack, Teams, and GitHub. They can be used to find someone's full profile, activity history, and connections.",
-    "action": "This will be replaced with [USERNAME_N]. Remove usernames before sharing with AI unless the account is already public."
+    "action": "This will be replaced with [USERNAME_N~XXXX]. Remove usernames before sharing with AI unless the account is already public."
   },
   "username_url": {
     "title": "Profile URL",
     "why": "Profile URLs directly link to someone's public identity — their posts, connections, work history, and activity. Sharing these with AI tools exposes the person's digital identity.",
-    "action": "This will be replaced with [USERNAME_N]. Consider whether the AI needs the actual profile link."
+    "action": "This will be replaced with [USERNAME_N~XXXX]. Consider whether the AI needs the actual profile link."
   },
   "employee_id": {
     "title": "U of T Employee ID",
     "why": "Employee IDs are linked to HR records, payroll, and internal systems. They can be used to impersonate staff or access restricted resources.",
-    "action": "This will be replaced with [EMPLOYEE_ID_N]."
+    "action": "This will be replaced with [EMPLOYEE_ID_N~XXXX]."
   },
   "person_name": {
     "title": "Person Name",
-    "why": "Full names combined with institutional context uniquely identify individuals. Detected by Layer 2 AI-powered name recognition.",
-    "action": "This will be replaced with [PERSON_N]. The AI can still follow your request without the real name."
+    "why": "Full names combined with institutional context uniquely identify individuals. Detected by Deep Scan's AI-powered name recognition.",
+    "action": "This will be replaced with [PERSON_N~XXXX]. The AI can still follow your request without the real name."
   },
   "location": {
     "title": "Location",
     "why": "Addresses and specific locations can identify individuals when combined with a role, department, or other context.",
-    "action": "This will be replaced with [LOCATION_N]."
+    "action": "This will be replaced with [LOCATION_N~XXXX]."
   },
   "organization": {
     "title": "Organization",
     "why": "Organization names narrow identification when combined with role, department, or other context.",
-    "action": "This will be replaced with [ORG_N]."
+    "action": "This will be replaced with [ORG_N~XXXX]."
   },
   "grant_number": {
     "title": "Research Grant Number",
     "why": "Grant numbers link to funding records (NSERC/CIHR/SSHRC) and can identify principal investigators and projects.",
-    "action": "This will be replaced with [GRANT_N]."
+    "action": "This will be replaced with [GRANT_N~XXXX]."
   }
 }

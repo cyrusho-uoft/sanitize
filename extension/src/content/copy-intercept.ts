@@ -28,7 +28,7 @@ function extensionAlive(): boolean {
   }
 }
 
-// Mode C keyboard shortcut is handled by the service worker + offscreen document.
+// Mode C keyboard shortcut is handled by the service worker.
 // Content script only handles Mode B copy-intercept.
 
 document.addEventListener('copy', (e: ClipboardEvent) => {
@@ -59,7 +59,7 @@ document.addEventListener('copy', (e: ClipboardEvent) => {
   const sanitized = tokenize(selection, detections);
   e.clipboardData?.setData('text/plain', sanitized);
 
-  // Notify via extension badge + system notification
+  // Notify via the extension badge (count shown on the toolbar icon)
   chrome.runtime.sendMessage({
     type: 'copy-sanitized',
     count: detections.length,
