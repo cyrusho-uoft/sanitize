@@ -10,8 +10,8 @@ The U of T Prompt Sanitizer is a browser extension built for the University of T
 
 ### What we DO NOT collect
 - We do not collect, store, or transmit any text you scan
-- We do not collect browsing history or page content
-- We do not track which AI tools you use
+- We do not transmit or persistently store browsing history or page content
+- We do not track which AI tools you use, beyond a temporary in-memory session activity list (event source, site hostname, timestamp, item count) that clears when the browser closes
 - We do not collect personal information, names, or identifiers
 - We do not use cookies or tracking pixels
 - We do not share any data with third parties
@@ -34,6 +34,7 @@ Token mappings (the link between placeholders like [PERSON_1~XKQR] and original 
 - Is not accessible to websites or other extensions
 - Is shared only between the extension's own components, so you can sanitize in one tab and restore from the popup later in the same browser session
 - Is capped at the most recent sanitize operations; the oldest mappings are discarded first if the cap is reached
+- Powers the popup's session activity view, which records only the event source (paste/copy/shortcut/popup), the site's hostname, a timestamp, an item count, and a running count of restore actions this session — never the text or the detected values
 
 ## Permissions
 

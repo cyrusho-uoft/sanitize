@@ -1,13 +1,19 @@
 import { Detection } from '../scanner/types';
 import {
   TokenMapping,
+  BatchMeta,
   persistMappings,
   loadAllMappings,
   clearAllMappings,
   countMappings,
+  recordRestoreEvent,
 } from './mapping-store';
 
-const TYPE_LABELS: Record<string, string> = {
+export type { BatchMeta } from './mapping-store';
+
+/** Placeholder label per detection type — exported so the popup can preview
+ *  the exact token a value will become before Sanitize & Copy runs. */
+export const TYPE_LABELS: Record<string, string> = {
   sin: 'SIN_REDACTED',
   student_number: 'STUDENT_ID',
   health_card: 'HEALTH_CARD',
@@ -39,7 +45,7 @@ let pendingWrites: Promise<void>[] = [];
  * different tab/conversation to the wrong person's PII (or to a value
  * poisoned by a hostile page firing synthetic copy events).
  */
-export function tokenize(text: string, detections: Detection[]): string {
+export function tokenize(text: string, detections: Detection[], meta?: BatchMeta): string {
   if (detections.length === 0) return text;
 
   const mappings: TokenMapping[] = [];
@@ -71,7 +77,7 @@ export function tokenize(text: string, detections: Detection[]): string {
     result = result.slice(0, detection.start) + placeholder + result.slice(detection.end);
   }
 
-  const write = persistMappings(mappings);
+  const write = persistMappings(mappings, meta);
   pendingWrites.push(write);
   // Cap the pending list so long-lived contexts don't grow it unbounded.
   if (pendingWrites.length > 32) pendingWrites = pendingWrites.slice(-32);
@@ -98,6 +104,9 @@ export async function detokenize(text: string): Promise<{ result: string; restor
       restored++;
     }
   }
+
+  // Awaited so the popup's immediate activity refresh observes the new count.
+  if (restored > 0) await recordRestoreEvent();
 
   return { result, restored };
 }

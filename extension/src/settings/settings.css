@@ -1,13 +1,4 @@
-:root {
-  --uoft-blue: #002A5C;
-  --uoft-blue-light: #003D7A;
-  --surface: #FFFFFF;
-  --surface-secondary: #F8F9FA;
-  --text-primary: #1A1A2E;
-  --text-secondary: #666666;
-  --border: #E0E0E0;
-  --success: #28A745;
-}
+/* Color tokens live in ../shared/tokens.css (linked before this file). */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -76,10 +67,10 @@ body {
   transition: border-color 0.15s;
 }
 
-.mode-option:hover { border-color: var(--uoft-blue); }
-.mode-option.selected { border-color: var(--uoft-blue); background: #F0F4F8; }
+.mode-option:hover { border-color: var(--uoft-accent); }
+.mode-option.selected { border-color: var(--uoft-accent); background: var(--surface-secondary); }
 
-.mode-option input[type="radio"] { margin-top: 2px; accent-color: var(--uoft-blue); }
+.mode-option input[type="radio"] { margin-top: 2px; accent-color: var(--uoft-accent); }
 
 .mode-content strong { font-size: 13px; }
 
@@ -121,7 +112,7 @@ body {
 }
 
 .toggle-row input[type="checkbox"]:focus-visible + .toggle-switch {
-  outline: 2px solid var(--uoft-blue);
+  outline: 2px solid var(--uoft-accent);
   outline-offset: 2px;
 }
 
@@ -148,7 +139,7 @@ body {
 }
 
 .toggle-row input:checked + .toggle-switch {
-  background: var(--uoft-blue);
+  background: var(--uoft-accent);
 }
 
 .toggle-row input:checked + .toggle-switch::after {
@@ -175,8 +166,9 @@ body {
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--success);
-  color: white;
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
   padding: 6px 16px;
   border-radius: 4px;
   font-size: 12px;

@@ -1,0 +1,55 @@
+/**
+ * Shared design tokens for every extension surface (popup, settings,
+ * onboarding). Linked BEFORE each surface's own stylesheet, which must not
+ * re-declare these variables. Dark theme follows the OS preference.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Brand */
+  --uoft-blue: #002A5C;
+  --uoft-blue-light: #003D7A;
+  /* Accent usable as text/interactive color on the current surface —
+     navy on light, lightened blue on dark. */
+  --uoft-accent: #002A5C;
+
+  /* Surfaces & text */
+  --surface: #FFFFFF;
+  --surface-secondary: #F8F9FA;
+  --text-primary: #1A1A2E;
+  --text-secondary: #5C6675;
+  --border: #E0E0E0;
+
+  /* Semantic */
+  --success: #1E7E34;
+  --success-bg: #E8F5E9;
+  --severity-high: #DC3545;
+  --severity-high-bg: #F8D7DA;
+  --severity-medium: #856404;
+  --severity-medium-bg: #FFF3CD;
+  --severity-low: #0C5460;
+  --severity-low-bg: #D1ECF1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --uoft-blue: #002A5C;        /* brand plate color stays brand */
+    --uoft-blue-light: #123C6E;
+    --uoft-accent: #8FB6EA;
+
+    --surface: #14202F;
+    --surface-secondary: #1C2A3D;
+    --text-primary: #E8EEF7;
+    --text-secondary: #A5B2C5;
+    --border: #33445C;
+
+    --success: #5BC492;
+    --success-bg: #1B3A2D;
+    --severity-high: #F28B82;
+    --severity-high-bg: #47232A;
+    --severity-medium: #E0BB5C;
+    --severity-medium-bg: #3E3524;
+    --severity-low: #93A5BD;
+    --severity-low-bg: #263A46;
+  }
+}

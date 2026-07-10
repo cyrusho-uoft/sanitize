@@ -1,13 +1,4 @@
-:root {
-  --uoft-blue: #002A5C;
-  --uoft-blue-light: #003D7A;
-  --surface: #FFFFFF;
-  --surface-secondary: #F8F9FA;
-  --text-primary: #1A1A2E;
-  --text-secondary: #666666;
-  --border: #E0E0E0;
-  --success: #28A745;
-}
+/* Color tokens live in ../shared/tokens.css (linked before this file). */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -47,7 +38,7 @@ body {
   font-weight: 700;
   text-align: center;
   margin-bottom: 16px;
-  color: var(--uoft-blue);
+  color: var(--uoft-accent);
 }
 
 .step-body {
@@ -139,17 +130,17 @@ body {
 }
 
 .mode-option:hover {
-  border-color: var(--uoft-blue);
+  border-color: var(--uoft-accent);
 }
 
 .mode-option.selected {
-  border-color: var(--uoft-blue);
-  background: #F0F4F8;
+  border-color: var(--uoft-accent);
+  background: var(--surface-secondary);
 }
 
 .mode-option input[type="radio"] {
   margin-top: 3px;
-  accent-color: var(--uoft-blue);
+  accent-color: var(--uoft-accent);
 }
 
 .mode-content strong {
@@ -197,7 +188,7 @@ body {
 }
 
 .dot.active {
-  background: var(--uoft-blue);
+  background: var(--uoft-accent);
 }
 
 .nav-buttons {

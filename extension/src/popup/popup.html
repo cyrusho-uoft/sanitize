@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../shared/tokens.css">
   <link rel="stylesheet" href="popup.css">
   <title>U of T Prompt Sanitizer</title>
 </head>
@@ -28,10 +29,19 @@
       </button>
     </header>
 
-    <!-- Tab bar -->
-    <nav class="tabs" role="tablist" aria-label="Popup views">
-      <button class="tab active" role="tab" id="tabbtn-scan" aria-selected="true" aria-controls="tab-scan" data-tab="scan">Scan</button>
-      <button class="tab" role="tab" id="tabbtn-restore" aria-selected="false" aria-controls="tab-restore" tabindex="-1" data-tab="restore">Restore</button>
+    <!-- Flow stepper: Protect → Ask the AI → Restore. Steps 1 and 3 are the
+         two working views; step 2 is a progress marker for the external part
+         of the round-trip and lights up after a copy. -->
+    <nav class="flow" role="tablist" aria-label="Workflow steps">
+      <button class="flow-step tab active" role="tab" id="tabbtn-scan" aria-selected="true" aria-controls="tab-scan" aria-posinset="1" aria-setsize="3" data-tab="scan">
+        <span class="flow-n" aria-hidden="true">1</span> Protect
+      </button>
+      <span class="flow-step flow-marker" id="flow-ask" aria-hidden="true">
+        <span class="flow-n">2</span> Ask the AI
+      </span>
+      <button class="flow-step tab" role="tab" id="tabbtn-restore" aria-selected="false" aria-controls="tab-restore" aria-posinset="3" aria-setsize="3" tabindex="-1" data-tab="restore">
+        <span class="flow-n" aria-hidden="true">3</span> Restore
+      </button>
     </nav>
 
     <!-- Scan tab -->
@@ -94,6 +104,16 @@
       <div class="restore-result" id="restore-result" role="status">
         <p id="restore-count"></p>
       </div>
+    </div>
+
+    <!-- Session activity: what the automatic modes did, at last visible. -->
+    <div class="session-bar">
+      <span id="session-summary">This session · no activity yet</span>
+      <button class="session-toggle" id="btn-activity" aria-expanded="false" aria-controls="activity-panel">Activity</button>
+    </div>
+    <div class="activity-panel" id="activity-panel" hidden>
+      <ul class="activity-list" id="activity-list" aria-label="Recent sanitize events"></ul>
+      <p class="activity-note">Shows time, source, site, and item counts only — never your text or the detected values. Everything is session-only and clears when the browser closes.</p>
     </div>
   </div>
 

@@ -1,5 +1,6 @@
 import { scanL1, mergeDetections, Detection } from '../scanner';
-import { tokenize, detokenize, getMappingCount } from '../tokenizer';
+import { tokenize, detokenize, getMappingCount, TYPE_LABELS } from '../tokenizer';
+import { loadBatchSummaries, getRestoreEventCount } from '../tokenizer/mapping-store';
 import { loadDeepScanSettings, requestDeepScan } from '../settings/deep-scan';
 import explanations from '../knowledge/explanations.json';
 
@@ -38,6 +39,20 @@ function activateTab(tab: HTMLButtonElement) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById(`tab-${tab.dataset.tab}`)?.classList.add('active');
 }
+
+// --- Flow stage (stepper) ---
+const flowAsk = document.getElementById('flow-ask') as HTMLElement;
+const tabScanBtn = document.getElementById('tabbtn-scan') as HTMLButtonElement;
+
+/** 'protect': working on step 1. 'copied': safe copy made — step 2 is live. */
+function setFlowStage(stage: 'protect' | 'copied') {
+  tabScanBtn.classList.toggle('done', stage === 'copied');
+  flowAsk.classList.toggle('on', stage === 'copied');
+}
+
+/** Keys the last Sanitize & Copy actually replaced — used to downgrade the
+ *  stepper if the async Deep Scan merge later surfaces NEW detections. */
+let copiedKeys: Set<string> | null = null;
 
 tabs.forEach((tab, i) => {
   tab.addEventListener('click', () => activateTab(tab));
@@ -85,6 +100,8 @@ async function runScan() {
   const text = inputText.value;
   keptKeys.clear(); // new text, fresh decisions
   keptDetections.clear();
+  setFlowStage('protect'); // new text — back to step 1
+  copiedKeys = null;
   const ds = await loadDeepScanSettings();
   deepScanState = ds.enabled ? 'pending' : 'off';
   const l1 = scanL1(text);
@@ -109,6 +126,12 @@ async function runScan() {
   }
   currentDetections = merged;
   deepScanState = 'done';
+  // If the merge surfaced detections the earlier copy never replaced, the
+  // "safe copy ready" stepper state is no longer true — fall back to step 1.
+  if (copiedKeys && activeDetections().some(d => !copiedKeys!.has(detectionKey(d)))) {
+    setFlowStage('protect');
+    copiedKeys = null;
+  }
   renderResults();
 }
 
@@ -177,6 +200,17 @@ function renderResults() {
   summaryMedium.textContent = `${mediumCount} Medium`;
   summaryMedium.className = `summary-item${mediumCount > 0 ? ' medium' : ''}`;
 
+  // Preview placeholders with the same numbering tokenize() will use
+  // (it assigns counters in descending-position order); the 4-char tag is
+  // minted at copy time, shown as ···· until then.
+  const previews = new Map<Detection, string>();
+  const previewCounters: Record<string, number> = {};
+  for (const d of [...active].sort((a, b) => b.start - a.start)) {
+    const label = TYPE_LABELS[d.type] || d.type.toUpperCase();
+    previewCounters[label] = (previewCounters[label] || 0) + 1;
+    previews.set(d, `[${label}_${previewCounters[label]}~····]`);
+  }
+
   // Detection cards
   detectionsEl.innerHTML = '';
   for (const detection of active) {
@@ -184,7 +218,11 @@ function renderResults() {
     const card = document.createElement('div');
     card.className = `detection-card ${detection.severity}`;
     card.setAttribute('role', 'listitem');
-    card.setAttribute('aria-label', `${detection.severity} severity: ${exp?.title || detection.type}. Value: ${detection.value}`);
+    card.setAttribute(
+      'aria-label',
+      `${detection.severity} severity: ${exp?.title || detection.type}. ` +
+        `${detection.value} will be replaced with ${previews.get(detection) || 'a placeholder token'}`
+    );
     card.innerHTML = `
       <button class="detection-dismiss" title="Keep the original value — it will NOT be replaced"
         aria-label="Keep original value for this detection">Keep</button>
@@ -193,10 +231,15 @@ function renderResults() {
         <span class="layer-badge">${detection.layer === 'L2' ? 'Deep Scan' : 'Local'}</span>
         <span>${detection.severity.toUpperCase()}</span>
       </div>
-      <code class="detection-value">${escapeHtml(detection.value)}</code>
-      <div class="detection-explain">
-        <strong>Why this matters:</strong> ${exp?.why || 'This information could identify you or others.'}
+      <div class="detection-diff">
+        <span class="diff-old">${escapeHtml(detection.value)}</span>
+        <span class="diff-arrow" aria-hidden="true">→</span>
+        <code class="diff-token">${escapeHtml(previews.get(detection) || '')}</code>
       </div>
+      <details class="detection-explain">
+        <summary>Why this matters</summary>
+        <p>${exp?.why || 'This information could identify you or others.'}</p>
+      </details>
     `;
 
     card.querySelector('.detection-dismiss')?.addEventListener('click', () => {
@@ -221,7 +264,7 @@ btnSanitize.addEventListener('click', async () => {
   const active = activeDetections();
   if (active.length === 0) return;
 
-  const sanitized = tokenize(inputText.value, active);
+  const sanitized = tokenize(inputText.value, active, { source: 'popup' });
 
   try {
     await navigator.clipboard.writeText(sanitized);
@@ -230,8 +273,11 @@ btnSanitize.addEventListener('click', async () => {
     const keptCount = currentDetections.length - active.length;
     statusBar.hidden = false;
     statusText.textContent = keptCount > 0
-      ? `Copied — ${active.length} item${active.length > 1 ? 's' : ''} replaced, ${keptCount} kept original${keptCount > 1 ? 's' : ''} included as-is. Paste the AI's reply into the Restore tab to bring real values back.`
-      : 'Safe copy on your clipboard. Paste it into the AI tool — then paste the reply into the Restore tab to bring real values back.';
+      ? `Copied — ${active.length} item${active.length > 1 ? 's' : ''} replaced, ${keptCount} kept original${keptCount > 1 ? 's' : ''} included as-is. Paste the AI's reply into step 3 (Restore) to bring real values back.`
+      : 'Safe copy on your clipboard. Paste it into the AI tool — then paste the reply into step 3 (Restore) to bring real values back.';
+    setFlowStage('copied');
+    copiedKeys = new Set(active.map(detectionKey));
+    void refreshActivity();
     btnSanitize.textContent = 'Copied \u2713';
     btnSanitize.classList.add('copied');
     setTimeout(() => {
@@ -288,6 +334,7 @@ btnRestore.addEventListener('click', async () => {
     await navigator.clipboard.writeText(result);
     restoreCount.textContent = `${restored} item${restored > 1 ? 's' : ''} restored. Copied to clipboard!`;
     restoreCount.style.color = 'var(--success)';
+    void refreshActivity();
   } catch {
     restoreCount.textContent = "Couldn't copy — try again";
     restoreCount.style.color = 'var(--severity-high)';
@@ -300,6 +347,73 @@ document.getElementById('btn-settings')?.addEventListener('click', () => {
   // (the page is also embedded by chrome://extensions via options_ui).
   window.location.href = '../settings/settings.html?from=popup';
 });
+
+// --- Session activity ---
+const sessionSummary = document.getElementById('session-summary') as HTMLElement;
+const btnActivity = document.getElementById('btn-activity') as HTMLButtonElement;
+const activityPanel = document.getElementById('activity-panel') as HTMLElement;
+const activityList = document.getElementById('activity-list') as HTMLElement;
+
+const SOURCE_LABELS: Record<string, string> = {
+  paste: 'AI-site guard',
+  copy: 'Copy guard',
+  shortcut: 'Shortcut',
+  popup: 'Popup',
+  unknown: 'Sanitize',
+};
+
+async function refreshActivity(): Promise<void> {
+  try {
+    const [summaries, restores] = await Promise.all([
+      loadBatchSummaries(),
+      getRestoreEventCount(),
+    ]);
+
+    const protectedCount = summaries.reduce((n, s) => n + s.count, 0);
+    // "Recent activity", not a session total — the store keeps only the most
+    // recent batches (64-batch cap, oldest evicted first).
+    sessionSummary.textContent =
+      summaries.length === 0 && restores === 0
+        ? 'Recent activity · none yet'
+        : `Recent activity · ${protectedCount} replacement${protectedCount === 1 ? '' : 's'} · ${restores} restore${restores === 1 ? '' : 's'} this session`;
+
+    activityList.innerHTML = '';
+    if (summaries.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = 'No sanitize events yet this session.';
+      activityList.appendChild(li);
+      return;
+    }
+    for (const s of summaries.slice(0, 20)) {
+      const li = document.createElement('li');
+      const time = new Date(s.createdAt).toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+      li.textContent =
+        `${time} · ${SOURCE_LABELS[s.source] || s.source}` +
+        (s.site ? ` · ${s.site}` : '') +
+        ` · ${s.count} item${s.count === 1 ? '' : 's'}`;
+      activityList.appendChild(li);
+    }
+    if (summaries.length > 20) {
+      const li = document.createElement('li');
+      li.textContent = `…and ${summaries.length - 20} earlier event${summaries.length - 20 === 1 ? '' : 's'}`;
+      activityList.appendChild(li);
+    }
+  } catch {
+    sessionSummary.textContent = 'This session · activity unavailable';
+  }
+}
+
+btnActivity.addEventListener('click', () => {
+  const open = activityPanel.hidden;
+  activityPanel.hidden = !open;
+  btnActivity.setAttribute('aria-expanded', String(open));
+  if (open) void refreshActivity();
+});
+
+void refreshActivity();
 
 // --- Utility ---
 function escapeHtml(text: string): string {
