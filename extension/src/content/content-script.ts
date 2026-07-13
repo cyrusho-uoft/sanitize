@@ -70,15 +70,30 @@ document.addEventListener('paste', (e: ClipboardEvent) => {
   if (!extensionAlive()) return;
 
   // PII found — snapshot the field, cancel the native paste, and insert the sanitized text.
+  // selectionStart/End are null on input types without a selection API (email,
+  // number — WHATWG limits it to text/search/url/tel/password); fall back to
+  // end-of-value so existing content is preserved rather than spliced at 0.
   const snap: FieldSnapshot | null = field
-    ? { value: field.value, start: field.selectionStart ?? 0, end: field.selectionEnd ?? 0 }
+    ? {
+        value: field.value,
+        start: field.selectionStart ?? field.value.length,
+        end: field.selectionEnd ?? field.value.length,
+      }
     : null;
   e.preventDefault();
 
   const sanitized = tokenize(text, detections, { source: 'paste', site: location.hostname });
   if (field && snap) {
     field.value = snap.value.slice(0, snap.start) + sanitized + snap.value.slice(snap.end);
-    field.selectionStart = field.selectionEnd = snap.start + sanitized.length;
+    try {
+      field.selectionStart = field.selectionEnd = snap.start + sanitized.length;
+    } catch {
+      // WRITING selection throws InvalidStateError on selection-less input
+      // types (reading just returns null). Swallow it: the caret position is
+      // cosmetic, but an uncaught throw here would skip the input event and
+      // the toast — the user pasted PII and got zero feedback (found live on
+      // claude.ai's email login field).
+    }
     field.dispatchEvent(new Event('input', { bubbles: true }));
   } else if (target.isContentEditable) {
     document.execCommand('insertText', false, sanitized);

@@ -25,12 +25,22 @@ synchronous-preventDefault requirement. Solved at the root instead:
   linear-time behavior.
 **Added:** 2026-03-25 via /plan-eng-review
 
-## TODO: Test content script rendering against AI site CSP headers
-**Priority:** High (gating for Mode A)
-**What:** Verify that toast notifications and inline DOM elements injected by the content script actually render on ChatGPT (chatgpt.com), Claude (claude.ai), and Gemini (gemini.google.com).
-**Why:** These sites may have Content Security Policy headers that block injected CSS or DOM elements. If CSP blocks our toast, Mode A (paste-intercept + toast notification) silently fails — the user gets no feedback. Fallback needed: extension badge count or popup notification instead of inline toast.
-**How:** Load the extension on each target site, trigger a paste with PII, verify toast renders. Check CSP headers with DevTools. Document which sites work and which need fallbacks.
-**Depends on:** Extension scaffold + Mode A content script implementation.
+## DONE: Test content script rendering against AI site CSP headers
+**Resolved:** 2026-07-13 — end-to-end verified on all three sites with a real
+(isTrusted) Ctrl+V paste of sample PII into each site's own composer/input,
+via `extension/e2e/csp-toast-verify.mjs` (Playwright + loaded extension):
+- **chatgpt.com, claude.ai, gemini.google.com: all pass.** Toast in DOM,
+  injected styles applied (position:fixed, max z-index, visible in viewport),
+  placeholders inserted, no raw PII leaked, no extension-attributable CSP
+  violations. No fallback (badge/notification) needed.
+- CSP does NOT block the toast anywhere: content scripts run in Chrome's
+  isolated world, which is exempt from the page CSP — even Gemini's
+  `require-trusted-types-for 'script'` doesn't affect our `innerHTML` use.
+- The one real failure found was OURS, not CSP: `input[type=email]` (Claude's
+  login field) has no selection API, and WRITING `selectionStart/End` throws
+  `InvalidStateError` — sanitized text landed but the input event + toast were
+  skipped (zero user feedback). Fixed in `content-script.ts`: selection-less
+  types fall back to end-of-value insertion and the caret write is guarded.
 **Added:** 2026-03-25 via /plan-eng-review
 
 ## TODO: Update design doc with eng review decisions
