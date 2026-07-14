@@ -52,24 +52,19 @@ and a native (non-synthetic) site editable.
   "Blocked a paste" instead of falsely claiming insertion.
 **Added:** 2026-03-25 via /plan-eng-review
 
-## TODO: Update design doc with eng review decisions
-**Priority:** Medium
-**What:** Update the project design doc to reflect architectural decisions made during eng review. (The original design doc lived in external tooling that is no longer present — recreate it in-repo, e.g. `DESIGN.md`.)
-**Why:** The design doc is the source of truth for the architecture. It currently reflects the pre-review architecture.
-**Changes needed:**
-- Sequential pipeline → parallel detection with priority-based merge
-- "FastAPI or Flask" → Presidio native API + FastAPI gateway sidecar
-- Popup-only UX → three configurable modes (A: paste-intercept on AI sites, B: copy-intercept everywhere, C: manual popup + hotkey)
-- Add reversible tokenization with chrome.storage.session (originally sessionStorage; replaced for cross-context restore — see PRIVACY.md)
-- Add phased shipping strategy (L1 first, L2 behind feature flag)
-- Add pattern registry architecture (one file per pattern)
-**Depends on:** Nothing — can be done immediately.
-**Added:** 2026-03-25 via /plan-eng-review
-
-## TODO: Create DESIGN.md via /design-consultation
-**Priority:** Medium
-**What:** Run `/design-consultation` to create a full DESIGN.md with component library, spacing scale, interaction patterns, and U of T brand integration.
-**Why:** The design tokens from the plan-design-review are minimum-viable. A full design system prevents implementer guessing and ensures consistency across popup, toast, settings, and onboarding.
-**Context:** Current tokens: U of T blue (#002A5C), system-ui font, severity color system (red/yellow/blue), 400px popup width. DESIGN.md would formalize these plus define component specs (toast, detection card, severity badge, tab navigation).
-**Depends on:** Nothing — can be done before or after implementation.
+## DONE: Design doc — eng review decisions + full design system (was two TODOs)
+**Resolved:** 2026-07-13 — created `DESIGN.md` in-repo covering both halves:
+- Architecture decisions from eng review: parallel detection + priority merge,
+  Presidio native API + FastAPI gateway sidecar, three modes,
+  chrome.storage.session reversible tokenization, phased L1/L2 shipping,
+  pattern registry, plus the later invariants (synchronous interception,
+  fail-closed scanning, execCommand-first insertion with honest toast).
+- Design system: token tables (light+dark, from `tokens.css` as canonical),
+  severity color+shape system, type/space/radius/elevation/motion scales,
+  component specs (toast with its executeScript self-containment constraint,
+  popup stepper/activity/restore, settings, onboarding), interaction &
+  accessibility rules, copy rules, U of T brand usage.
+**Note:** merged the former "Update design doc with eng review decisions" and
+"Create DESIGN.md via /design-consultation" TODOs (both 2026-03-25) — one
+document serves both.
 **Added:** 2026-03-25 via /plan-design-review
