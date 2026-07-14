@@ -2,15 +2,43 @@
 
 ## TODO: Design-audit follow-ups (core + bets)
 **Priority:** Medium-High (UX)
-**What:** Remaining items from the 2026-07 UX audit (63 verified findings; quick wins shipped separately):
-- Flow-aware popup: Protect → Ask AI → Restore stepper, post-copy next-step state
-- Session activity view (list Mode A/B/C sanitize events; tag mapping batches with a source field)
-- Mode B: in-page toast with Undo + re-intercept snooze, per-site exceptions, real chrome.notifications (permission is declared but unused)
-- Dark theme across popup/settings/onboarding via shared tokens.css
+**What:** Remaining items from the 2026-07 UX audit (63 verified findings):
+- Mode B: per-site exceptions; real chrome.notifications (permission is declared but unused)
 - Mode A undo/bypass for false positives; sanitized-text preview pane
 - Onboarding v2: live sandbox instead of slides
+**Shipped:** flow-aware popup stepper + post-copy state, session activity view
+with batch source tags, dark theme via shared tokens.css (2026-07-10, PRs
+#23/#24); Mode B in-page toast with Undo + per-selection 30s re-intercept
+snooze, Undo on the Mode C shortcut toast (2026-07-14 — see DESIGN.md toast
+spec; Undo is isTrusted-gated so page scripts can't disarm protection).
 **Why:** Audit confirmed the round-trip is undiscoverable and automatic modes are invisible; these close the loop.
 **Added:** 2026-07-08 via design review (see review artifact)
+
+## TODO: Mode B trust hardening (pre-existing; surfaced by the Undo review)
+**Priority:** Medium (security)
+**What:** The copy interceptor's `isTrusted` gate does NOT block a hostile
+page from driving our handler: `document.execCommand('copy')` fires a copy
+event with `isTrusted === true` even with no user gesture (verified live in a
+Playwright probe, 2026-07-14). A page can therefore:
+- select attacker-chosen text and `execCommand('copy')` in a loop to mint
+  mapping batches into the single browser-wide `chrome.storage.session` store,
+  evicting the user's real mappings (64-batch cap) — a restore-DoS;
+- spam the toast (self-limiting: each render removes the previous).
+Separately, the toast renders into the page's light DOM, so a hostile page can
+suppress it with `!important` CSS or clickjack the Undo button (the pre-inserted
+`#ps-toast-v2-style` element also makes `renderSanitizerToast` skip its own
+styles). Both predate the Undo feature; Undo raises the stakes slightly.
+**Possible fixes:** move the toast into a closed Shadow DOM (keep it
+executeScript-serializable; update `e2e/csp-toast-verify.mjs` to pierce the
+root); gate mapping persistence on a stronger signal than `isTrusted`
+(e.g. correlate with a recent real selection change), or rate-limit/cap
+per-origin batch writes; don't skip our own stylesheet when the id already
+exists.
+**Also:** the popup activity view still counts an undone copy as a
+"replacement this session" (mappings are intentionally kept, but the count
+overstates what stayed protected) — record an undo marker on the batch to
+correct the tally.
+**Added:** 2026-07-14 via Mode B Undo adversarial review
 
 ## DONE: ReDoS hardening for L1 pattern matching (was: regex timeout wrapper)
 **Resolved:** 2026-07-10 — a same-thread timeout is impossible (JS regex execution

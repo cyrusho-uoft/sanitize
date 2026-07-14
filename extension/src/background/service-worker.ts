@@ -121,6 +121,10 @@ chrome.commands.onCommand.addListener(async (command) => {
       items: detections.map(d => ({ label: detectionLabel(d), severity: d.severity })),
       footer:
         'Ctrl+V to paste the safe copy. Paste the AI’s reply into step 3 (Restore) in the extension popup to bring real values back.',
+      // Undo puts the raw selection back on the clipboard (executeScript can't
+      // pass callbacks, so there are no extra hooks on this path — none needed:
+      // the shortcut only runs when explicitly pressed, nothing to snooze).
+      undoText: text,
     }).catch(() => {});
   } catch (err) {
     console.error('Sanitize selection failed:', err);
@@ -133,6 +137,12 @@ chrome.commands.onCommand.addListener(async (command) => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'copy-sanitized') {
     showBadge(String(message.count), '#DC3545', 5000);
+  }
+
+  // Mode B Undo: the clipboard now holds the original again, so drop the
+  // "N caught" badge instead of letting it assert protection that was reverted.
+  if (message.type === 'copy-undone') {
+    chrome.action.setBadgeText({ text: '' });
   }
 
   // Token-mapping batches from content scripts — they can't write

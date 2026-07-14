@@ -27,15 +27,44 @@ export interface SanitizerToastPayload {
   headline: string;
   items: SanitizerToastItem[];
   footer: string;
+  /**
+   * Original text to put back on the clipboard when the user clicks Undo.
+   * Held in memory only and NEVER rendered into the DOM (it is the page's own
+   * selection, so the page already had it — but echoing it into markup would
+   * still be a needless copy). Omit for toasts with nothing to undo.
+   */
+  undoText?: string;
 }
 
-export function renderSanitizerToast(payload: {
-  headline: string;
-  items: { label: string; severity: string }[];
-  footer: string;
-}): void {
+/**
+ * Optional callbacks for direct (same-world) callers. The executeScript path
+ * passes only the payload via args, so `hooks` is undefined there — the undo
+ * button still restores the clipboard, it just has no extra side effects.
+ */
+export interface SanitizerToastHooks {
+  /** Runs after the clipboard restore succeeds (e.g. arm a re-intercept snooze). */
+  onUndone?: () => void;
+}
+
+export function renderSanitizerToast(
+  payload: {
+    headline: string;
+    items: { label: string; severity: string }[];
+    footer: string;
+    undoText?: string;
+  },
+  hooks?: { onUndone?: () => void }
+): void {
   // Remove any previous toast
   document.querySelector('.ps-toast-v2')?.remove();
+
+  // Mode B runs on <all_urls>, which includes non-HTML documents (raw XML/SVG
+  // viewers) where document.head/body can be null. The clipboard was already
+  // rewritten by the time we get here, so a throw would leave a silent rewrite
+  // with no notice — fall back to documentElement.
+  const styleRoot = document.head || document.documentElement;
+  const toastRoot = document.body || document.documentElement;
+  if (!styleRoot || !toastRoot) return;
 
   if (!document.querySelector('#ps-toast-v2-style')) {
     const style = document.createElement('style');
@@ -83,8 +112,20 @@ export function renderSanitizerToast(payload: {
         .ps-toast-v2 .ps-t-dot.low { border-color: #93A5BD; }
       }
       .ps-toast-v2 .ps-t-foot { margin-top: 8px; font-size: 11px; opacity: .75; }
+      .ps-toast-v2 .ps-t-actions { margin-top: 9px; display: flex; gap: 8px; }
+      .ps-toast-v2 .ps-t-undo {
+        border: 1px solid #C7D2E3; background: none; color: inherit; cursor: pointer;
+        font: inherit; font-size: 11.5px; font-weight: 600;
+        padding: 4px 10px; border-radius: 6px;
+      }
+      .ps-toast-v2 .ps-t-undo:hover, .ps-toast-v2 .ps-t-undo:focus-visible { background: rgba(0,42,92,.06); }
+      .ps-toast-v2 .ps-t-undo:disabled { cursor: default; opacity: .8; }
+      @media (prefers-color-scheme: dark) {
+        .ps-toast-v2 .ps-t-undo { border-color: #3A4C6B; }
+        .ps-toast-v2 .ps-t-undo:hover, .ps-toast-v2 .ps-t-undo:focus-visible { background: rgba(255,255,255,.08); }
+      }
     `;
-    document.head.appendChild(style);
+    styleRoot.appendChild(style);
   }
 
   const esc = (s: string) => {
@@ -98,6 +139,14 @@ export function renderSanitizerToast(payload: {
   // role=alert is the one live-region pattern reliably announced when a node
   // is inserted into the DOM already populated (implies assertive + atomic).
   toast.setAttribute('role', 'alert');
+
+  // Only offer Undo where the Clipboard API is actually usable. It is
+  // SecureContext-only and undefined on http:// pages (Mode B runs on
+  // <all_urls>): rather than a fallback via execCommand('copy') — which our
+  // own Mode B copy interceptor would re-sanitize — we simply omit the button
+  // on insecure pages. The toast still notifies; protection stays on.
+  const canUndo =
+    !!payload.undoText && !!(navigator.clipboard && navigator.clipboard.writeText);
 
   const shieldSvg =
     '<svg class="ps-t-shield" viewBox="0 0 128 128" aria-hidden="true">' +
@@ -119,6 +168,7 @@ export function renderSanitizerToast(payload: {
       <button class="ps-t-close" aria-label="Dismiss notification">&times;</button></div>
     ${itemsHtml ? `<div class="ps-t-items">${itemsHtml}</div>` : ''}
     <div class="ps-t-foot">${esc(payload.footer)}</div>
+    ${canUndo ? '<div class="ps-t-actions"><button class="ps-t-undo">Undo — keep the original</button></div>' : ''}
   `;
 
   // Auto-dismiss with hover/focus pause; explicit close button.
@@ -145,6 +195,40 @@ export function renderSanitizerToast(payload: {
     toast.remove();
   });
 
-  document.body.appendChild(toast);
+  const undoBtn = toast.querySelector('.ps-t-undo') as HTMLButtonElement | null;
+  if (undoBtn) {
+    undoBtn.addEventListener('click', (ev) => {
+      // Page-synthesized clicks (el.click()) must not restore raw text or arm
+      // the snooze — that would let a hostile page switch the protection off.
+      // Real activations (mouse, or Enter/Space on the focused button) are
+      // isTrusted; clipboard writes need real user activation anyway.
+      if (!ev.isTrusted || undoBtn.disabled) return;
+      // Disable synchronously: a double-click must not fire two writes or arm
+      // the snooze twice.
+      undoBtn.disabled = true;
+      stopTimer();
+      navigator.clipboard.writeText(payload.undoText as string).then(
+        () => {
+          undoBtn.textContent = 'Original restored ✓';
+          // Only arm the snooze if this toast is still the live one — an
+          // in-flight undo whose toast was already replaced by a newer sanitize
+          // must not silently disable interception the user can no longer see.
+          if (toast.isConnected && hooks && hooks.onUndone) hooks.onUndone();
+          window.setTimeout(() => toast.remove(), 1400);
+        },
+        () => {
+          // Focus was lost between copy and click — let the user retry. Do NOT
+          // restart the auto-dismiss here: focus/pointer is still on the toast,
+          // so it would fade mid-read and take the retry affordance with it.
+          // The existing mouseleave/focusout listeners re-arm dismissal when
+          // the user actually leaves.
+          undoBtn.textContent = 'Undo failed — click the page, then retry';
+          undoBtn.disabled = false;
+        }
+      );
+    });
+  }
+
+  toastRoot.appendChild(toast);
   startTimer();
 }
