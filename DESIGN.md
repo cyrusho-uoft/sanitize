@@ -8,8 +8,9 @@ of them in the same change (see `CLAUDE.md` doc-sync rule).
 - Placeholder format lives in `extension/src/tokenizer/index.ts`
   (`PLACEHOLDER_RE` is the canonical regex; `e2e/csp-toast-verify.mjs` keeps a
   documented literal copy).
-- Toast DOM contract (`.ps-toast-v2`, `#ps-toast-v2-style`, z-index) is defined
-  in `extension/src/ui/toast.ts` and asserted by the e2e harness.
+- Toast host contract (`[data-ps-toast-host]`, closed shadow root, inline
+  `!important` layout lock) is defined in `extension/src/ui/toast.ts`; the e2e
+  harness asserts the host (it cannot reach the closed shadow content).
 
 ## 1. Product shape
 
@@ -150,8 +151,17 @@ and Mode C (`chrome.scripting.executeScript`).
 
 - **Hard constraint:** the render function is serialized with `toString()`
   for `executeScript`, so it must stay fully self-contained — no imports, no
-  module-scope references. Styles are an inline `<style id="ps-toast-v2-style">`.
-- Fixed bottom-right, `z-index: 2147483647`, max-width 330px.
+  module-scope references.
+- **Isolation:** the card renders inside a **closed shadow root** on a host
+  element (`[data-ps-toast-host]`) whose layout/visibility (`position`,
+  `z-index`, `display`, `visibility`, `opacity`, `pointer-events`) are set
+  inline with `!important`. Inline importance wins the cascade over any page
+  stylesheet, so a hostile page (Mode B is `<all_urls>`) can neither hide,
+  move, nor clickjack the notice; the closed root means it can't read, restyle,
+  or reach the card or its buttons either. Styles live in a `<style>` inside
+  the shadow root (no shared-`<head>` element to pre-empt). The card falls
+  back to `documentElement` when `document.body` is null (XML/SVG viewers).
+- Host fixed bottom-right, `z-index: 2147483647`; card max-width 330px.
 - Content: shield icon + headline, up to 3 severity-dotted type labels
   (`+N more` beyond that), footer with the next step. **Never raw PII values —
   labels only** (values would be echoed into the page DOM).
