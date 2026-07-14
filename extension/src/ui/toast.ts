@@ -11,12 +11,17 @@
  * no imports, no closures, no references to module scope.
  *
  * Hardening: the toast renders inside a CLOSED shadow root on a host element
- * whose layout/visibility are locked with inline !important. A hostile page
- * (Mode B runs on <all_urls>) therefore cannot read, restyle, or inject into
- * the toast's internals (closed shadow), nor hide/reposition it or clickjack
- * the Undo button (inline importance outranks any page stylesheet rule). The
- * card markup lives entirely in the shadow root; only the host
- * (`[data-ps-toast-host]`) is visible in the page's light DOM.
+ * whose layout/visibility are locked with inline !important. This closes the
+ * DANGEROUS attacks a hostile page (Mode B runs on <all_urls>) could mount:
+ * it cannot read, restyle, inject into, focus, or click the card/Undo button
+ * (closed shadow → no handle; Undo also requires isTrusted), and cannot hide
+ * the host with a page STYLESHEET (inline importance outranks it). It does NOT
+ * make the notice unconditionally tamper-proof: a page's own JavaScript can
+ * remove/restyle this light-DOM host node, and ancestor compositing CSS
+ * (body/html opacity/filter/transform/display) can hide any fixed child — both
+ * merely SUPPRESS the notice (content is already sanitized, so it stays safe;
+ * the toolbar badge + popup are the surfaces a page can't touch). See the
+ * inline threat-scope note in renderSanitizerToast.
  *
  * Privacy: the toast lists detection TYPE labels only — never the raw values
  * (they would be echoed back into the page DOM).
@@ -63,22 +68,34 @@ export function renderSanitizerToast(
   },
   hooks?: { onUndone?: () => void }
 ): void {
-  // Remove any previous toast host (may be null or not ours — harmless).
-  document.querySelector('[data-ps-toast-host]')?.remove();
+  // Remove ALL prior toast hosts (removeAll, not the first match: a hostile
+  // page could plant a decoy [data-ps-toast-host] earlier in the tree and make
+  // a single ?.remove() delete the decoy while our real prior toast lingers).
+  document.querySelectorAll('[data-ps-toast-host]').forEach((el) => el.remove());
 
-  // Mode B runs on <all_urls>, which includes non-HTML documents (raw XML/SVG
-  // viewers) where document.body can be null. The clipboard was already
-  // rewritten by the time we get here, so a throw would leave a silent rewrite
-  // with no notice — fall back to documentElement.
+  // Non-HTML documents (raw XML/SVG viewers under <all_urls>) have no body.
+  // The clipboard was already rewritten by the time we get here, so a throw
+  // would leave a silent rewrite with no notice — fall back to documentElement.
   const toastRoot = document.body || document.documentElement;
   if (!toastRoot) return;
 
-  // Host in the page's light DOM, carrying a CLOSED shadow root so the page
-  // cannot read/restyle/inject the toast internals. Its own layout+visibility
-  // are locked inline with !important — inline importance wins the cascade over
-  // any page stylesheet (even one using !important), so the page can't hide,
-  // move, or clickjack the notice. Fade-out animates the inner card (in the
-  // shadow root), never these host properties, so the lock doesn't fight it.
+  // Host lives in the page's light DOM. Its layout+visibility are locked inline
+  // with !important, which outranks any page STYLESHEET (even one using
+  // !important) targeting the host. Fade-out animates the inner card, never
+  // these host properties, so the lock doesn't fight it.
+  //
+  // Threat scope — what this does and does NOT stop. The closed shadow root
+  // below makes the card and its Undo button unreachable to page scripts (no
+  // handle, can't be read/restyled/focused/clicked), and the Undo handler
+  // additionally requires isTrusted — so a hostile page can NOT force an undo,
+  // read the card, or reach its internals. What in-page UI can never fully
+  // resist is a hostile page's own JavaScript (it can remove or restyle this
+  // light-DOM host node) or ancestor compositing CSS (body/html
+  // opacity/filter/transform/display can hide any fixed child regardless of the
+  // child's own !important) — both can visually SUPPRESS the notice. That only
+  // hides the message: the clipboard/field is already sanitized, so content
+  // stays safe, and the toolbar badge + popup (surfaces the page can't touch)
+  // remain the tamper-proof fallback.
   const host = document.createElement('div');
   host.setAttribute('data-ps-toast-host', '');
   const hostLock: Record<string, string> = {
@@ -102,7 +119,18 @@ export function renderSanitizerToast(
   };
   for (const prop in hostLock) host.style.setProperty(prop, hostLock[prop], 'important');
 
-  const root = host.attachShadow({ mode: 'closed' });
+  // Prefer a closed shadow root (isolation + hardening). attachShadow throws on
+  // non-HTML-namespace elements — e.g. inside a raw XML/SVG document, where
+  // createElement makes a null-namespace div — so degrade to rendering the card
+  // directly in the host (light DOM) rather than throwing and showing nothing.
+  // The card's <style> applies globally there, which is acceptable on such
+  // viewer pages; the visible harm we must avoid is a silent rewrite.
+  let root: ShadowRoot | HTMLElement;
+  try {
+    root = host.attachShadow({ mode: 'closed' });
+  } catch {
+    root = host;
+  }
   const style = document.createElement('style');
   style.textContent = `
       .ps-toast-v2 {

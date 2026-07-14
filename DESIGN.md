@@ -155,12 +155,24 @@ and Mode C (`chrome.scripting.executeScript`).
 - **Isolation:** the card renders inside a **closed shadow root** on a host
   element (`[data-ps-toast-host]`) whose layout/visibility (`position`,
   `z-index`, `display`, `visibility`, `opacity`, `pointer-events`) are set
-  inline with `!important`. Inline importance wins the cascade over any page
-  stylesheet, so a hostile page (Mode B is `<all_urls>`) can neither hide,
-  move, nor clickjack the notice; the closed root means it can't read, restyle,
-  or reach the card or its buttons either. Styles live in a `<style>` inside
-  the shadow root (no shared-`<head>` element to pre-empt). The card falls
-  back to `documentElement` when `document.body` is null (XML/SVG viewers).
+  inline with `!important`. What this closes, precisely:
+  - **Forced undo / read / reach — fully closed.** The closed root gives page
+    scripts no handle to the card or its Undo button (can't read, restyle,
+    focus, or click them), and the Undo handler also requires `isTrusted`. A
+    hostile page cannot force an undo or read the toast.
+  - **Stylesheet hiding of the host — closed.** Inline `!important` outranks any
+    page stylesheet rule targeting the host.
+  - **Not fully closable (inherent to in-page UI):** a hostile page's own
+    JavaScript can remove/restyle this light-DOM host, and ancestor compositing
+    CSS (`body`/`html` `opacity`/`filter`/`transform`/`display`) can hide any
+    fixed child. These only **suppress** the notice — the clipboard/field is
+    already sanitized so content stays safe. The **toolbar badge and popup**
+    (surfaces the page can't touch) are the tamper-proof fallback; a future
+    `chrome.notifications` path (see TODOS) would be a fully out-of-page notice.
+  - Styles live in a `<style>` inside the shadow root (no shared-`<head>`
+    element to pre-empt). If `attachShadow` is unavailable (non-HTML XML/SVG
+    viewer documents), the card degrades to light DOM so the notice still
+    appears; the host root falls back to `documentElement` when `body` is null.
 - Host fixed bottom-right, `z-index: 2147483647`; card max-width 330px.
 - Content: shield icon + headline, up to 3 severity-dotted type labels
   (`+N more` beyond that), footer with the next step. **Never raw PII values —

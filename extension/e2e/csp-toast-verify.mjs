@@ -4,10 +4,11 @@
  * Loads the built extension in Chromium and, for every host the manifest's
  * Mode A content script matches, fires a REAL Ctrl+V (isTrusted paste) of
  * sample PII into the site's own composer/input, then GATES the run on:
- *   1. `.ps-toast-v2` present in the DOM (not stripped by site JS),
- *   2. injected styles actually applied (computed position:fixed + max
- *      z-index — a CSP-blocked <style> collapses these to defaults) AND the
- *      toast visible inside the viewport,
+ *   1. the toast host `[data-ps-toast-host]` present in the light DOM (the
+ *      card itself is in a CLOSED shadow root, unreachable from the page),
+ *   2. the host's inline-locked layout applied — computed position:fixed, max
+ *      z-index, visibility:visible — AND the host visible inside the viewport
+ *      (a CSP-blocked shadow <style> or a hidden host breaks one of these),
  *   3. placeholders inserted and NONE of the planted PII literals present,
  *   4. no CSP-violation console message attributable to the extension,
  *   5. a native site editable was used (a synthetic fallback input exercises
