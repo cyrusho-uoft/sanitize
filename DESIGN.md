@@ -33,8 +33,8 @@ The core user loop is **Protect → Ask AI → Restore**:
 | Mode | Trigger | Where | Notes |
 |---|---|---|---|
 | A — AI-site guard | paste event | chatgpt.com, chat.openai.com, claude.ai, gemini.google.com | Default on. Intercepts only when L1 finds PII; clean pastes stay native. |
-| B — copy guard | copy event | all sites | Sanitizes the clipboard copy. |
-| C — manual | popup scanner + Ctrl+Shift+S | anywhere | The only flows that run L2 (Deep Scan) — async is safe here. |
+| B — copy guard | copy event | all sites | Sanitizes the clipboard copy. Toast offers Undo (restore raw + 30s per-tab re-intercept snooze). |
+| C — manual | popup scanner + Ctrl+Shift+S | anywhere | The only flows that run L2 (Deep Scan) — async is safe here. Shortcut toast offers Undo (no snooze — the shortcut is explicit). |
 
 ## 2. Architecture decisions (eng-review outcomes)
 
@@ -158,9 +158,17 @@ and Mode C (`chrome.scripting.executeScript`).
 - Honest copy: "Protected N items in your paste" only when placeholders
   verifiably landed; "Blocked a paste with N sensitive items" when the field
   rejected them.
+- Optional Undo action (`payload.undoText`): restores the original text to
+  the clipboard on a **real** user activation only (`isTrusted` — page
+  scripts must not be able to switch protection off), then reports "Original
+  restored ✓". The original is held in memory only, never rendered. Direct
+  (same-world) callers may pass an `onUndone` hook — Mode B uses it to arm a
+  30s per-tab re-intercept snooze; the executeScript path can't pass
+  callbacks, so Mode C gets clipboard restore only.
 - `role="alert"` (the one live-region pattern reliably announced for a node
   inserted already-populated). Close button with `aria-label`. 8s auto-dismiss
-  paused on hover/focus (reset-then-start timer).
+  paused on hover/focus (reset-then-start timer); Undo failure (focus loss)
+  relabels the button with the retry instruction instead of failing silently.
 - Verified rendering on all three AI sites despite their CSPs (isolated-world
   exemption) — `e2e/csp-toast-verify.mjs` gates this.
 

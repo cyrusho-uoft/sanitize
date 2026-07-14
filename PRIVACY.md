@@ -36,6 +36,12 @@ Token mappings (the link between placeholders like [PERSON_1~XKQR] and original 
 - Is capped at the most recent sanitize operations; the oldest mappings are discarded first if the cap is reached
 - Powers the popup's session activity view, which records only the event source (paste/copy/shortcut/popup), the site's hostname, a timestamp, an item count, and a running count of restore actions this session — never the text or the detected values
 
+### On-page notifications (toast)
+The toast shown after a sanitize event lists detection **type labels only** (e.g. "U of T Email Address") — never the detected values. Copy-guard and shortcut toasts offer an **Undo** button:
+- Undo writes the original text back to your clipboard. Until then the original is held only in that page's memory — it is that page's own selection, it is never displayed, stored, or sent anywhere
+- Undo responds only to a real user activation (a page script cannot trigger it to switch protection off)
+- After Undo, copy-interception in that tab pauses for 30 seconds so re-copying the same text isn't immediately rewritten again
+
 ## Permissions
 
 The extension requests these browser permissions:

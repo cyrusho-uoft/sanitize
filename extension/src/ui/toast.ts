@@ -27,13 +27,34 @@ export interface SanitizerToastPayload {
   headline: string;
   items: SanitizerToastItem[];
   footer: string;
+  /**
+   * Original text to put back on the clipboard when the user clicks Undo.
+   * Held in memory only and NEVER rendered into the DOM (it is the page's own
+   * selection, so the page already had it — but echoing it into markup would
+   * still be a needless copy). Omit for toasts with nothing to undo.
+   */
+  undoText?: string;
 }
 
-export function renderSanitizerToast(payload: {
-  headline: string;
-  items: { label: string; severity: string }[];
-  footer: string;
-}): void {
+/**
+ * Optional callbacks for direct (same-world) callers. The executeScript path
+ * passes only the payload via args, so `hooks` is undefined there — the undo
+ * button still restores the clipboard, it just has no extra side effects.
+ */
+export interface SanitizerToastHooks {
+  /** Runs after the clipboard restore succeeds (e.g. arm a re-intercept snooze). */
+  onUndone?: () => void;
+}
+
+export function renderSanitizerToast(
+  payload: {
+    headline: string;
+    items: { label: string; severity: string }[];
+    footer: string;
+    undoText?: string;
+  },
+  hooks?: { onUndone?: () => void }
+): void {
   // Remove any previous toast
   document.querySelector('.ps-toast-v2')?.remove();
 
@@ -83,6 +104,18 @@ export function renderSanitizerToast(payload: {
         .ps-toast-v2 .ps-t-dot.low { border-color: #93A5BD; }
       }
       .ps-toast-v2 .ps-t-foot { margin-top: 8px; font-size: 11px; opacity: .75; }
+      .ps-toast-v2 .ps-t-actions { margin-top: 9px; display: flex; gap: 8px; }
+      .ps-toast-v2 .ps-t-undo {
+        border: 1px solid #C7D2E3; background: none; color: inherit; cursor: pointer;
+        font: inherit; font-size: 11.5px; font-weight: 600;
+        padding: 4px 10px; border-radius: 6px;
+      }
+      .ps-toast-v2 .ps-t-undo:hover, .ps-toast-v2 .ps-t-undo:focus-visible { background: rgba(0,42,92,.06); }
+      .ps-toast-v2 .ps-t-undo:disabled { cursor: default; opacity: .8; }
+      @media (prefers-color-scheme: dark) {
+        .ps-toast-v2 .ps-t-undo { border-color: #3A4C6B; }
+        .ps-toast-v2 .ps-t-undo:hover, .ps-toast-v2 .ps-t-undo:focus-visible { background: rgba(255,255,255,.08); }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -119,6 +152,7 @@ export function renderSanitizerToast(payload: {
       <button class="ps-t-close" aria-label="Dismiss notification">&times;</button></div>
     ${itemsHtml ? `<div class="ps-t-items">${itemsHtml}</div>` : ''}
     <div class="ps-t-foot">${esc(payload.footer)}</div>
+    ${payload.undoText ? '<div class="ps-t-actions"><button class="ps-t-undo">Undo — keep the original</button></div>' : ''}
   `;
 
   // Auto-dismiss with hover/focus pause; explicit close button.
@@ -144,6 +178,31 @@ export function renderSanitizerToast(payload: {
     stopTimer();
     toast.remove();
   });
+
+  const undoBtn = toast.querySelector('.ps-t-undo') as HTMLButtonElement | null;
+  if (undoBtn) {
+    undoBtn.addEventListener('click', (ev) => {
+      // Page-synthesized clicks (el.click()) must not restore raw text or arm
+      // the snooze — that would let a hostile page switch the protection off.
+      // Real activations (mouse, or Enter/Space on the focused button) are
+      // isTrusted; clipboard writes need real user activation anyway.
+      if (!ev.isTrusted) return;
+      stopTimer();
+      navigator.clipboard.writeText(payload.undoText as string).then(
+        () => {
+          undoBtn.textContent = 'Original restored ✓';
+          undoBtn.disabled = true;
+          if (hooks && hooks.onUndone) hooks.onUndone();
+          window.setTimeout(() => toast.remove(), 1400);
+        },
+        () => {
+          // Focus was lost between copy and click — tell the user how to retry.
+          undoBtn.textContent = 'Undo failed — click the page, then retry';
+          startTimer();
+        }
+      );
+    });
+  }
 
   document.body.appendChild(toast);
   startTimer();

@@ -2,13 +2,15 @@
 
 ## TODO: Design-audit follow-ups (core + bets)
 **Priority:** Medium-High (UX)
-**What:** Remaining items from the 2026-07 UX audit (63 verified findings; quick wins shipped separately):
-- Flow-aware popup: Protect → Ask AI → Restore stepper, post-copy next-step state
-- Session activity view (list Mode A/B/C sanitize events; tag mapping batches with a source field)
-- Mode B: in-page toast with Undo + re-intercept snooze, per-site exceptions, real chrome.notifications (permission is declared but unused)
-- Dark theme across popup/settings/onboarding via shared tokens.css
+**What:** Remaining items from the 2026-07 UX audit (63 verified findings):
+- Mode B: per-site exceptions; real chrome.notifications (permission is declared but unused)
 - Mode A undo/bypass for false positives; sanitized-text preview pane
 - Onboarding v2: live sandbox instead of slides
+**Shipped:** flow-aware popup stepper + post-copy state, session activity view
+with batch source tags, dark theme via shared tokens.css (2026-07-10, PRs
+#23/#24); Mode B in-page toast with Undo + 30s per-tab re-intercept snooze,
+Undo on the Mode C shortcut toast (2026-07-14 — see DESIGN.md toast spec;
+Undo is isTrusted-gated so page scripts can't disarm protection).
 **Why:** Audit confirmed the round-trip is undiscoverable and automatic modes are invisible; these close the loop.
 **Added:** 2026-07-08 via design review (see review artifact)
 
