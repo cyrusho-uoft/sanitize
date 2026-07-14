@@ -33,10 +33,14 @@ function extensionAlive(): boolean {
 // Mode C keyboard shortcut is handled by the service worker.
 // Content script only handles Mode B copy-intercept.
 
-// Armed by the toast's Undo button: the user just told us this rewrite was
-// wrong, so re-copying the same selection must not immediately re-intercept.
-// Per-tab module state is enough — the follow-up copy happens right here.
+// Armed by the toast's Undo button: the user just told us THIS rewrite was
+// wrong, so re-copying the SAME text must pass through instead of being
+// rewritten again. Scoped to the exact undone selection (not tab-global) so
+// undoing one false positive can't silently disable protection for unrelated
+// sensitive copies in the same tab. Per content-script instance; copy-intercept
+// is not registered all_frames, so this matches the interception scope exactly.
 const SNOOZE_MS = 30_000;
+let snoozedSelection: string | null = null;
 let snoozeUntil = 0;
 
 document.addEventListener('copy', (e: ClipboardEvent) => {
@@ -44,11 +48,16 @@ document.addEventListener('copy', (e: ClipboardEvent) => {
   // browser-wide mapping store with attacker-chosen values — only act on real gestures.
   if (!e.isTrusted) return;
   if (modeCache !== 'B') return;
-  if (Date.now() < snoozeUntil) return; // user chose Undo — copies pass untouched for now
 
   // Get the selected text
   const selection = window.getSelection()?.toString();
   if (!selection || selection.trim().length === 0) return;
+
+  // Just-undone text passes through untouched for a short window (only this
+  // exact selection — unrelated copies are still scanned).
+  if (snoozedSelection !== null && selection === snoozedSelection && Date.now() < snoozeUntil) {
+    return;
+  }
 
   const detections = scanL1(selection);
   if (detections.length === 0) return; // Clean text — let copy through normally
@@ -93,7 +102,12 @@ document.addEventListener('copy', (e: ClipboardEvent) => {
     },
     {
       onUndone: () => {
+        // Let re-copying this exact text through for a short window, and clear
+        // the "N caught" toolbar badge — the clipboard now holds the original,
+        // so the badge would otherwise assert protection that was just reverted.
+        snoozedSelection = selection;
         snoozeUntil = Date.now() + SNOOZE_MS;
+        chrome.runtime.sendMessage({ type: 'copy-undone' });
       },
     }
   );

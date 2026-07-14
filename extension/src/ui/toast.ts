@@ -58,6 +58,14 @@ export function renderSanitizerToast(
   // Remove any previous toast
   document.querySelector('.ps-toast-v2')?.remove();
 
+  // Mode B runs on <all_urls>, which includes non-HTML documents (raw XML/SVG
+  // viewers) where document.head/body can be null. The clipboard was already
+  // rewritten by the time we get here, so a throw would leave a silent rewrite
+  // with no notice — fall back to documentElement.
+  const styleRoot = document.head || document.documentElement;
+  const toastRoot = document.body || document.documentElement;
+  if (!styleRoot || !toastRoot) return;
+
   if (!document.querySelector('#ps-toast-v2-style')) {
     const style = document.createElement('style');
     style.id = 'ps-toast-v2-style';
@@ -117,7 +125,7 @@ export function renderSanitizerToast(
         .ps-toast-v2 .ps-t-undo:hover, .ps-toast-v2 .ps-t-undo:focus-visible { background: rgba(255,255,255,.08); }
       }
     `;
-    document.head.appendChild(style);
+    styleRoot.appendChild(style);
   }
 
   const esc = (s: string) => {
@@ -131,6 +139,14 @@ export function renderSanitizerToast(
   // role=alert is the one live-region pattern reliably announced when a node
   // is inserted into the DOM already populated (implies assertive + atomic).
   toast.setAttribute('role', 'alert');
+
+  // Only offer Undo where the Clipboard API is actually usable. It is
+  // SecureContext-only and undefined on http:// pages (Mode B runs on
+  // <all_urls>): rather than a fallback via execCommand('copy') — which our
+  // own Mode B copy interceptor would re-sanitize — we simply omit the button
+  // on insecure pages. The toast still notifies; protection stays on.
+  const canUndo =
+    !!payload.undoText && !!(navigator.clipboard && navigator.clipboard.writeText);
 
   const shieldSvg =
     '<svg class="ps-t-shield" viewBox="0 0 128 128" aria-hidden="true">' +
@@ -152,7 +168,7 @@ export function renderSanitizerToast(
       <button class="ps-t-close" aria-label="Dismiss notification">&times;</button></div>
     ${itemsHtml ? `<div class="ps-t-items">${itemsHtml}</div>` : ''}
     <div class="ps-t-foot">${esc(payload.footer)}</div>
-    ${payload.undoText ? '<div class="ps-t-actions"><button class="ps-t-undo">Undo — keep the original</button></div>' : ''}
+    ${canUndo ? '<div class="ps-t-actions"><button class="ps-t-undo">Undo — keep the original</button></div>' : ''}
   `;
 
   // Auto-dismiss with hover/focus pause; explicit close button.
@@ -186,24 +202,33 @@ export function renderSanitizerToast(
       // the snooze — that would let a hostile page switch the protection off.
       // Real activations (mouse, or Enter/Space on the focused button) are
       // isTrusted; clipboard writes need real user activation anyway.
-      if (!ev.isTrusted) return;
+      if (!ev.isTrusted || undoBtn.disabled) return;
+      // Disable synchronously: a double-click must not fire two writes or arm
+      // the snooze twice.
+      undoBtn.disabled = true;
       stopTimer();
       navigator.clipboard.writeText(payload.undoText as string).then(
         () => {
           undoBtn.textContent = 'Original restored ✓';
-          undoBtn.disabled = true;
-          if (hooks && hooks.onUndone) hooks.onUndone();
+          // Only arm the snooze if this toast is still the live one — an
+          // in-flight undo whose toast was already replaced by a newer sanitize
+          // must not silently disable interception the user can no longer see.
+          if (toast.isConnected && hooks && hooks.onUndone) hooks.onUndone();
           window.setTimeout(() => toast.remove(), 1400);
         },
         () => {
-          // Focus was lost between copy and click — tell the user how to retry.
+          // Focus was lost between copy and click — let the user retry. Do NOT
+          // restart the auto-dismiss here: focus/pointer is still on the toast,
+          // so it would fade mid-read and take the retry affordance with it.
+          // The existing mouseleave/focusout listeners re-arm dismissal when
+          // the user actually leaves.
           undoBtn.textContent = 'Undo failed — click the page, then retry';
-          startTimer();
+          undoBtn.disabled = false;
         }
       );
     });
   }
 
-  document.body.appendChild(toast);
+  toastRoot.appendChild(toast);
   startTimer();
 }

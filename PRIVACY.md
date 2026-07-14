@@ -37,10 +37,11 @@ Token mappings (the link between placeholders like [PERSON_1~XKQR] and original 
 - Powers the popup's session activity view, which records only the event source (paste/copy/shortcut/popup), the site's hostname, a timestamp, an item count, and a running count of restore actions this session — never the text or the detected values
 
 ### On-page notifications (toast)
-The toast shown after a sanitize event lists detection **type labels only** (e.g. "U of T Email Address") — never the detected values. Copy-guard and shortcut toasts offer an **Undo** button:
+The toast shown after a sanitize event lists detection **type labels only** (e.g. "U of T Email Address") — never the detected values. The copy guard (Mode B) and the Ctrl+Shift+S shortcut toast offer an **Undo** button:
 - Undo writes the original text back to your clipboard. Until then the original is held only in that page's memory — it is that page's own selection, it is never displayed, stored, or sent anywhere
 - Undo responds only to a real user activation (a page script cannot trigger it to switch protection off)
-- After Undo, copy-interception in that tab pauses for 30 seconds so re-copying the same text isn't immediately rewritten again
+- Undo is offered only on secure (https) pages, where the browser's Clipboard API is available; on insecure (http) pages the toast still notifies you but omits the button
+- After a copy-guard Undo, re-copying **that same text** in the tab passes through untouched for up to 30 seconds (or until you navigate away), so undoing a false positive isn't immediately re-rewritten. Unrelated copies are still scanned, and the shortcut toast's Undo does not pause anything (the shortcut only runs when you press it)
 
 ## Permissions
 

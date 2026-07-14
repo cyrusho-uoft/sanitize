@@ -139,6 +139,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     showBadge(String(message.count), '#DC3545', 5000);
   }
 
+  // Mode B Undo: the clipboard now holds the original again, so drop the
+  // "N caught" badge instead of letting it assert protection that was reverted.
+  if (message.type === 'copy-undone') {
+    chrome.action.setBadgeText({ text: '' });
+  }
+
   // Token-mapping batches from content scripts — they can't write
   // chrome.storage.session themselves, so the worker lands the write and
   // acknowledges it. The async response also keeps the worker alive until
