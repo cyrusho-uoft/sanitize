@@ -25,12 +25,31 @@ synchronous-preventDefault requirement. Solved at the root instead:
   linear-time behavior.
 **Added:** 2026-03-25 via /plan-eng-review
 
-## TODO: Test content script rendering against AI site CSP headers
-**Priority:** High (gating for Mode A)
-**What:** Verify that toast notifications and inline DOM elements injected by the content script actually render on ChatGPT (chatgpt.com), Claude (claude.ai), and Gemini (gemini.google.com).
-**Why:** These sites may have Content Security Policy headers that block injected CSS or DOM elements. If CSP blocks our toast, Mode A (paste-intercept + toast notification) silently fails — the user gets no feedback. Fallback needed: extension badge count or popup notification instead of inline toast.
-**How:** Load the extension on each target site, trigger a paste with PII, verify toast renders. Check CSP headers with DevTools. Document which sites work and which need fallbacks.
-**Depends on:** Extension scaffold + Mode A content script implementation.
+## DONE: Test content script rendering against AI site CSP headers
+**Resolved:** 2026-07-13 — end-to-end verified on all three sites with a real
+(isTrusted) Ctrl+V paste of sample PII into each site's own composer/input,
+via `extension/e2e/csp-toast-verify.mjs` (Playwright + loaded extension). The
+script derives its site list from the manifest's Mode A matches (a new host
+can't silently skip verification) and its PASS gate enforces: toast in DOM,
+injected styles applied AND visible in viewport, placeholders inserted, none
+of the planted PII literals present, no extension-attributable CSP violation,
+and a native (non-synthetic) site editable.
+- **chatgpt.com, claude.ai, gemini.google.com: all pass.** No fallback
+  (badge/notification) needed.
+- CSP does NOT block the toast anywhere: content scripts run in Chrome's
+  isolated world, which is exempt from the page CSP — even Gemini's
+  `require-trusted-types-for 'script'` doesn't affect our `innerHTML` use.
+- The real failures found were OURS, not CSP (all fixed in
+  `content-script.ts`): writing `selectionStart/End` on `input[type=email]`
+  throws `InvalidStateError` (sanitized text landed but input event + toast
+  were skipped — zero feedback on Claude's login field); the direct `.value`
+  splice ignored the user's visual selection on selection-less inputs AND was
+  deduped by React's value tracker (site state never saw the sanitized text).
+  Insertion now goes through `document.execCommand('insertText')` first
+  (real caret/selection, native input event, undo stack), verified by
+  placeholder presence, with a prototype-setter splice fallback; fields that
+  reject placeholders (`type=number`) keep their old value and the toast says
+  "Blocked a paste" instead of falsely claiming insertion.
 **Added:** 2026-03-25 via /plan-eng-review
 
 ## TODO: Update design doc with eng review decisions

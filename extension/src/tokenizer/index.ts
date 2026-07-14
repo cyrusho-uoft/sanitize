@@ -34,6 +34,14 @@ export const TYPE_LABELS: Record<string, string> = {
 let pendingWrites: Promise<void>[] = [];
 
 /**
+ * The placeholder shape minted below, e.g. [EMAIL_1~KQXR]. Canonical copy —
+ * consumers (popup diagnostics, content script insertion check) import this
+ * instead of re-encoding the format. e2e/csp-toast-verify.mjs keeps a literal
+ * copy (plain .mjs can't import the TS bundle); update it together with this.
+ */
+export const PLACEHOLDER_RE = /\[[A-Z][A-Z_]*_\d+~[A-Z]{4}\]/;
+
+/**
  * Replace detected PII with semantic placeholders.
  * Synchronous (paste/copy handlers depend on it); the mapping batch is
  * persisted to chrome.storage.session in the background via mapping-store.
