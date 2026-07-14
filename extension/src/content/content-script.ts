@@ -7,7 +7,7 @@
  */
 
 import { scanL1, Detection } from '../scanner';
-import { tokenize } from '../tokenizer';
+import { tokenize, PLACEHOLDER_RE } from '../tokenizer';
 import { renderSanitizerToast } from '../ui/toast';
 import explanations from '../knowledge/explanations.json';
 
@@ -69,10 +69,10 @@ document.addEventListener('paste', (e: ClipboardEvent) => {
   // never be persisted, so don't mint unrestorable placeholders — native paste through.
   if (!extensionAlive()) return;
 
-  // PII found — snapshot the field, cancel the native paste, and insert the sanitized text.
-  // selectionStart/End are null on input types without a selection API (email,
-  // number — WHATWG limits it to text/search/url/tel/password); fall back to
-  // end-of-value so existing content is preserved rather than spliced at 0.
+  // PII found — snapshot the field, cancel the native paste, and insert the
+  // sanitized text. selectionStart/End read null on input types without a
+  // selection API (email, number — WHATWG limits it to
+  // text/search/url/tel/password); fall back to end-of-value.
   const snap: FieldSnapshot | null = field
     ? {
         value: field.value,
@@ -83,36 +83,75 @@ document.addEventListener('paste', (e: ClipboardEvent) => {
   e.preventDefault();
 
   const sanitized = tokenize(text, detections, { source: 'paste', site: location.hostname });
-  if (field && snap) {
-    field.value = snap.value.slice(0, snap.start) + sanitized + snap.value.slice(snap.end);
-    try {
-      field.selectionStart = field.selectionEnd = snap.start + sanitized.length;
-    } catch {
-      // WRITING selection throws InvalidStateError on selection-less input
-      // types (reading just returns null). Swallow it: the caret position is
-      // cosmetic, but an uncaught throw here would skip the input event and
-      // the toast — the user pasted PII and got zero feedback (found live on
-      // claude.ai's email login field).
-    }
-    field.dispatchEvent(new Event('input', { bubbles: true }));
-  } else if (target.isContentEditable) {
+  // detections.length > 0 ⇒ sanitized contains ≥1 placeholder, and
+  // placeholders never span lines, so the marker survives the newline
+  // stripping single-line inputs apply to inserted text.
+  const marker = sanitized.match(PLACEHOLDER_RE)?.[0] ?? sanitized;
+  const landed = () => ((field ? field.value : target.textContent) || '').includes(marker);
+
+  // Insert via execCommand first for BOTH plain fields and contentEditable:
+  // it edits at the browser's REAL caret/selection (email/number fields read
+  // selectionStart as null yet still show a visual selection — splicing turns
+  // a replace-selection paste into an append), fires a native input event
+  // that React's value tracker accepts (a synthetic Event dispatched after a
+  // direct .value write is deduped, so the app state never learns about the
+  // sanitized text), and preserves the undo stack. Its return value is
+  // unreliable (true even when type=number rejects the text), so success is
+  // judged by content: did a placeholder land?
+  let inserted = false;
+  try {
     document.execCommand('insertText', false, sanitized);
+    inserted = landed();
+  } catch {
+    inserted = false;
   }
 
-  showToast(detections);
+  if (!inserted && field && snap && field.value === snap.value) {
+    // Fallback splice for fields where execCommand didn't take. Write through
+    // the prototype setter so React's tracker registers the change when the
+    // input event below arrives. (Skipped when execCommand already altered
+    // the field — splicing on top would double-insert.)
+    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field), 'value');
+    const setValue = (v: string) => {
+      if (desc?.set) desc.set.call(field, v);
+      else field.value = v;
+    };
+    setValue(snap.value.slice(0, snap.start) + sanitized + snap.value.slice(snap.end));
+    inserted = landed();
+    if (inserted) {
+      if (field.selectionStart !== null) {
+        // Selection-less types throw on selection WRITES (reads return null),
+        // so the support check is stated directly instead of a catch.
+        field.selectionStart = field.selectionEnd = snap.start + sanitized.length;
+      }
+    } else {
+      // Value sanitization rejected the placeholder text (e.g. type=number
+      // coerces the whole value to ''): restore the original content instead
+      // of leaving the field wiped. The PII paste stays blocked either way.
+      setValue(snap.value);
+    }
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  showToast(detections, inserted);
 }, true);
 
-function showToast(detections: Detection[]) {
+function showToast(detections: Detection[], inserted: boolean) {
+  const n = detections.length;
   renderSanitizerToast({
-    headline: `Protected ${detections.length} item${detections.length > 1 ? 's' : ''} in your paste`,
+    headline: inserted
+      ? `Protected ${n} item${n > 1 ? 's' : ''} in your paste`
+      : `Blocked a paste with ${n} sensitive item${n > 1 ? 's' : ''}`,
     items: detections.map(d => ({
       label:
         (explanations as Record<string, { title: string }>)[d.explanationKey]?.title || d.type,
       severity: d.severity,
     })),
-    // Only promise what the product can do: the popup opens from the toolbar
-    // icon, and the Restore tab is where placeholders become real values again.
-    footer:
-      'Placeholders were inserted — paste the AI’s reply into step 3 (Restore) in the extension popup to bring real values back.',
+    // Only promise what actually happened: placeholders either landed in the
+    // field, or the field rejected them (e.g. type=number) and the paste was
+    // simply blocked — claiming insertion then would be false feedback.
+    footer: inserted
+      ? 'Placeholders were inserted — paste the AI’s reply into step 3 (Restore) in the extension popup to bring real values back.'
+      : 'This field can’t hold placeholders, so nothing was inserted. Your clipboard still has the original text.',
   });
 }

@@ -28,19 +28,28 @@ synchronous-preventDefault requirement. Solved at the root instead:
 ## DONE: Test content script rendering against AI site CSP headers
 **Resolved:** 2026-07-13 — end-to-end verified on all three sites with a real
 (isTrusted) Ctrl+V paste of sample PII into each site's own composer/input,
-via `extension/e2e/csp-toast-verify.mjs` (Playwright + loaded extension):
-- **chatgpt.com, claude.ai, gemini.google.com: all pass.** Toast in DOM,
-  injected styles applied (position:fixed, max z-index, visible in viewport),
-  placeholders inserted, no raw PII leaked, no extension-attributable CSP
-  violations. No fallback (badge/notification) needed.
+via `extension/e2e/csp-toast-verify.mjs` (Playwright + loaded extension). The
+script derives its site list from the manifest's Mode A matches (a new host
+can't silently skip verification) and its PASS gate enforces: toast in DOM,
+injected styles applied AND visible in viewport, placeholders inserted, none
+of the planted PII literals present, no extension-attributable CSP violation,
+and a native (non-synthetic) site editable.
+- **chatgpt.com, claude.ai, gemini.google.com: all pass.** No fallback
+  (badge/notification) needed.
 - CSP does NOT block the toast anywhere: content scripts run in Chrome's
   isolated world, which is exempt from the page CSP — even Gemini's
   `require-trusted-types-for 'script'` doesn't affect our `innerHTML` use.
-- The one real failure found was OURS, not CSP: `input[type=email]` (Claude's
-  login field) has no selection API, and WRITING `selectionStart/End` throws
-  `InvalidStateError` — sanitized text landed but the input event + toast were
-  skipped (zero user feedback). Fixed in `content-script.ts`: selection-less
-  types fall back to end-of-value insertion and the caret write is guarded.
+- The real failures found were OURS, not CSP (all fixed in
+  `content-script.ts`): writing `selectionStart/End` on `input[type=email]`
+  throws `InvalidStateError` (sanitized text landed but input event + toast
+  were skipped — zero feedback on Claude's login field); the direct `.value`
+  splice ignored the user's visual selection on selection-less inputs AND was
+  deduped by React's value tracker (site state never saw the sanitized text).
+  Insertion now goes through `document.execCommand('insertText')` first
+  (real caret/selection, native input event, undo stack), verified by
+  placeholder presence, with a prototype-setter splice fallback; fields that
+  reject placeholders (`type=number`) keep their old value and the toast says
+  "Blocked a paste" instead of falsely claiming insertion.
 **Added:** 2026-03-25 via /plan-eng-review
 
 ## TODO: Update design doc with eng review decisions

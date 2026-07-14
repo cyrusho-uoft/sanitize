@@ -1,5 +1,5 @@
 import { scanL1, mergeDetections, Detection } from '../scanner';
-import { tokenize, detokenize, getMappingCount, TYPE_LABELS } from '../tokenizer';
+import { tokenize, detokenize, getMappingCount, TYPE_LABELS, PLACEHOLDER_RE } from '../tokenizer';
 import { loadBatchSummaries, getRestoreEventCount } from '../tokenizer/mapping-store';
 import { loadDeepScanSettings, requestDeepScan } from '../settings/deep-scan';
 import explanations from '../knowledge/explanations.json';
@@ -301,9 +301,6 @@ const restoreText = document.getElementById('restore-text') as HTMLTextAreaEleme
 const btnRestore = document.getElementById('btn-restore') as HTMLButtonElement;
 const restoreResult = document.getElementById('restore-result') as HTMLElement;
 const restoreCount = document.getElementById('restore-count') as HTMLElement;
-
-/** Placeholder shape minted by the tokenizer, e.g. [EMAIL_1~KQXR]. */
-const PLACEHOLDER_RE = /\[[A-Z][A-Z_]*_\d+~[A-Z]{4}\]/;
 
 btnRestore.addEventListener('click', async () => {
   const text = restoreText.value;

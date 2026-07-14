@@ -12,6 +12,10 @@
  *
  * Privacy: the toast lists detection TYPE labels only — never the raw values
  * (they would be echoed back into the page DOM).
+ *
+ * e2e/csp-toast-verify.mjs asserts the literals '.ps-toast-v2',
+ * '#ps-toast-v2-style', '.ps-t-head span' and z-index 2147483647 (it can't
+ * import this module) — renaming any of them means updating that script.
  */
 
 export interface SanitizerToastItem {
