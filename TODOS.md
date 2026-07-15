@@ -14,26 +14,28 @@ spec; Undo is isTrusted-gated so page scripts can't disarm protection).
 **Why:** Audit confirmed the round-trip is undiscoverable and automatic modes are invisible; these close the loop.
 **Added:** 2026-07-08 via design review (see review artifact)
 
-## TODO: Mode B trust hardening (pre-existing; surfaced by the Undo review)
+## TODO: Mode B trust hardening — store poisoning (pre-existing)
 **Priority:** Medium (security)
-**What:** The copy interceptor's `isTrusted` gate does NOT block a hostile
-page from driving our handler: `document.execCommand('copy')` fires a copy
-event with `isTrusted === true` even with no user gesture (verified live in a
-Playwright probe, 2026-07-14). A page can therefore:
-- select attacker-chosen text and `execCommand('copy')` in a loop to mint
-  mapping batches into the single browser-wide `chrome.storage.session` store,
-  evicting the user's real mappings (64-batch cap) — a restore-DoS;
-- spam the toast (self-limiting: each render removes the previous).
-Separately, the toast renders into the page's light DOM, so a hostile page can
-suppress it with `!important` CSS or clickjack the Undo button (the pre-inserted
-`#ps-toast-v2-style` element also makes `renderSanitizerToast` skip its own
-styles). Both predate the Undo feature; Undo raises the stakes slightly.
-**Possible fixes:** move the toast into a closed Shadow DOM (keep it
-executeScript-serializable; update `e2e/csp-toast-verify.mjs` to pierce the
-root); gate mapping persistence on a stronger signal than `isTrusted`
-(e.g. correlate with a recent real selection change), or rate-limit/cap
-per-origin batch writes; don't skip our own stylesheet when the id already
-exists.
+**Done so far (2026-07-14):** the toast now renders in a **closed shadow root**
+on a host whose layout/visibility are locked inline with `!important`, so a
+hostile page can no longer suppress, reposition, clickjack, read, or restyle
+the notice or its Undo button (verified: a page throwing `display:none`/
+`visibility:hidden`/`opacity:0`/`transform`/`clip-path` `!important` at every
+guessable selector cannot hide the host; `host.shadowRoot === null` from the
+page). This also removed the shared-`<head>` stylesheet that a page could
+pre-empt.
+**Still open:** the copy interceptor's `isTrusted` gate does NOT block a
+hostile page from driving our handler — `document.execCommand('copy')` fires a
+copy event with `isTrusted === true` even with no user gesture (verified live
+in a Playwright probe, 2026-07-14). A page can select attacker-chosen text and
+`execCommand('copy')` in a loop to mint mapping batches into the single
+browser-wide `chrome.storage.session` store, evicting the user's real mappings
+(64-batch cap) — a restore-DoS. (Requires Mode B on; local DoS only, no
+exfiltration.)
+**Possible fixes:** gate mapping persistence on a stronger signal than
+`isTrusted` (e.g. correlate with a recent real `selectionchange`), or
+rate-limit/cap per-origin batch writes so a flood can't evict legitimate
+mappings.
 **Also:** the popup activity view still counts an undone copy as a
 "replacement this session" (mappings are intentionally kept, but the count
 overstates what stayed protected) — record an undo marker on the batch to

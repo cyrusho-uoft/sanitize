@@ -4,10 +4,11 @@
  * Loads the built extension in Chromium and, for every host the manifest's
  * Mode A content script matches, fires a REAL Ctrl+V (isTrusted paste) of
  * sample PII into the site's own composer/input, then GATES the run on:
- *   1. `.ps-toast-v2` present in the DOM (not stripped by site JS),
- *   2. injected styles actually applied (computed position:fixed + max
- *      z-index — a CSP-blocked <style> collapses these to defaults) AND the
- *      toast visible inside the viewport,
+ *   1. the toast host `[data-ps-toast-host]` present in the light DOM (the
+ *      card itself is in a CLOSED shadow root, unreachable from the page),
+ *   2. the host's inline-locked layout applied — computed position:fixed, max
+ *      z-index, visibility:visible — AND the host visible inside the viewport
+ *      (a CSP-blocked shadow <style> or a hidden host breaks one of these),
  *   3. placeholders inserted and NONE of the planted PII literals present,
  *   4. no CSP-violation console message attributable to the extension,
  *   5. a native site editable was used (a synthetic fallback input exercises
@@ -178,29 +179,35 @@ async function testSite(context, site) {
     await page.keyboard.press('Control+V');
     await page.waitForTimeout(1500);
 
-    // 1. toast in DOM?
-    result.toastInDom = (await page.locator('.ps-toast-v2').count()) > 0;
+    // 1. toast host in DOM? The card lives in a CLOSED shadow root, so we
+    // verify via the light-DOM host element the page could actually see.
+    result.toastInDom = (await page.locator('[data-ps-toast-host]').count()) > 0;
 
-    // 2. our stylesheet actually applied + toast actually visible?
+    // 2. host layout locked + toast actually visible? position:fixed and the
+    // max z-index are set inline with !important on the host; a page CSP that
+    // blocked the injected shadow styles, or a page rule that hid the host,
+    // would break one of these.
     if (result.toastInDom) {
       result.toastStyle = await page.evaluate(() => {
-        const el = document.querySelector('.ps-toast-v2');
+        const el = document.querySelector('[data-ps-toast-host]');
         if (!el) return null;
         const cs = getComputedStyle(el);
         const rect = el.getBoundingClientRect();
         return {
           position: cs.position,
           zIndex: cs.zIndex,
-          background: cs.backgroundColor,
+          visibility: cs.visibility,
+          opacity: cs.opacity,
+          // Host wraps the card tightly, so a real rendered card gives the host
+          // a non-zero box; a suppressed/empty toast collapses it.
           visible: rect.width > 0 && rect.height > 0,
           inViewport: rect.bottom <= innerHeight + 1 && rect.right <= innerWidth + 1,
-          styleElPresent: !!document.querySelector('#ps-toast-v2-style'),
-          headline: el.querySelector('.ps-t-head span')?.textContent || '',
         };
       });
       result.styleApplied =
         result.toastStyle?.position === 'fixed' &&
         result.toastStyle?.zIndex === '2147483647' &&
+        result.toastStyle?.visibility === 'visible' &&
         result.toastStyle?.visible === true &&
         result.toastStyle?.inViewport === true;
     }
